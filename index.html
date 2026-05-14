@@ -1,0 +1,1563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"/>
+<meta name="theme-color" content="#080c18"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="EDC 2026"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="assets/webp/icon-512.webp"/>
+<title>EDC LV 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#080c18;--bg2:#0d1225;--bg3:#131828;
+  --border:rgba(255,255,255,.08);--border2:rgba(255,255,255,.04);
+  --text:rgba(255,255,255,.9);--text2:rgba(255,255,255,.5);--text3:rgba(255,255,255,.22);
+  --accent:#fc3cbf;--accent2:#0bf5f8;
+  --r:16px;--r2:12px;--r3:20px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:var(--bg);font-family:'DM Sans',sans-serif;color:var(--text)}
+#root{height:100%;display:flex;flex-direction:column}
+::-webkit-scrollbar{display:none}
+*{scrollbar-width:none;-ms-overflow-style:none}
+input,textarea{font-family:inherit;font-size:16px;-webkit-appearance:none}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+img{display:block}
+.sora{font-family:'Sora',sans-serif}
+.mono{font-family:'Space Mono',monospace}
+.dm{font-family:'DM Sans',sans-serif}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes glow{0%,100%{filter:drop-shadow(0 0 8px var(--accent))}50%{filter:drop-shadow(0 0 18px var(--accent))}}
+.anim-up{animation:fadeUp .28s ease both}
+.pulse{animation:pulse 2s ease-in-out infinite}
+.spin{animation:spin 1s linear infinite}
+/* Shared screen scroll container */
+.screen{flex:1;overflow-y:auto;overflow-x:hidden}
+/* Header image */
+.screen-header{position:relative;width:100%;overflow:hidden}
+.screen-header img.bg{width:100%;display:block;object-fit:cover;mix-blend-mode:screen}
+.screen-header .fade{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(8,12,24,0) 0%,rgba(8,12,24,.6) 60%,rgba(8,12,24,1) 100%)}
+.screen-header .fade-top{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(8,12,24,.65) 0%,transparent 40%)}
+.screen-header .content{position:absolute;bottom:0;left:0;right:0;padding:16px 20px 20px}
+/* Cards */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r)}
+/* Icon img — uses mix-blend-mode screen to drop black backgrounds */
+.icon-img{mix-blend-mode:screen;display:block;flex-shrink:0}
+/* Set card stage lockup */
+.lockup-img{mix-blend-mode:screen;height:16px;object-fit:contain;display:block}
+/* Input */
+.input{width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:var(--r2);padding:10px 14px;color:var(--text);font-size:15px;outline:none}
+.input:focus{border-color:rgba(255,255,255,.2)}
+/* Pill button */
+.pill{padding:7px 18px;border-radius:20px;font-weight:600;font-size:12px;transition:all .15s;border:none}
+.pill-active{background:var(--accent);color:#fff;box-shadow:0 0 18px rgba(252,60,191,.4)}
+.pill-inactive{background:rgba(255,255,255,.07);color:var(--text2)}
+/* Section label */
+.section-label{font-size:10px;color:var(--text3);letter-spacing:.18em;text-transform:uppercase;margin-bottom:10px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script type="text/babel" data-presets="react">
+const {useState,useEffect,useRef,useCallback,useMemo}=React;
+
+/* ─── ASSET HELPERS ──────────────────────────────────────────── */
+const W=p=>`assets/webp/${p}`;
+const IC=p=>`assets/icons/${p}`;
+const HD=p=>`assets/headers/${p}`;
+
+/* ─── STAGE CONFIG ───────────────────────────────────────────── */
+const SC={
+  kineticFIELD:  {key:'kinetic-field',  p:'#fc3cbf',s:'#0bf5f8',label:'kineticFIELD',  short:'KF',g:'#fc3cbf44'},
+  neonGARDEN:    {key:'neon-garden',    p:'#f844a5',s:'#16e6fd',label:'neonGARDEN',    short:'NG',g:'#f844a544'},
+  circuitGROUNDS:{key:'circuit-grounds',p:'#2582f6',s:'#fa45b9',label:'circuitGROUNDS',short:'CG',g:'#2582f644'},
+  stereoBLOOM:   {key:'stereo-bloom',   p:'#ff3eb2',s:'#14caff',label:'stereoBLOOM',   short:'SB',g:'#ff3eb244'},
+  cosmicMEADOW:  {key:'cosmic-meadow',  p:'#ec4ca4',s:'#14c4ed',label:'cosmicMEADOW',  short:'CM',g:'#ec4ca444'},
+  bassPOD:       {key:'bass-pod',       p:'#fa337f',s:'#abe400',label:'bassPOD',       short:'BP',g:'#fa337f44'},
+  wasteland:     {key:'wasteland',      p:'#c8ea1d',s:'#ff6e03',label:'wasteLAND',     short:'WL',g:'#c8ea1d44'},
+  quantumValley: {key:'quantum-valley', p:'#2b96ef',s:'#00d4ff',label:'quantumVALLEY', short:'QV',g:'#2b96ef44'},
+  bionicJungle:  {key:'bionic-jungle',  p:'#62e80b',s:'#0bcef0',label:'bionicJUNGLE',  short:'BJ',g:'#62e80b44'},
+};
+const STAGES=Object.keys(SC);
+
+/* ─── TIME HELPERS ───────────────────────────────────────────── */
+const toM=t=>{const[h,m]=t.split(':').map(Number);return h*60+m;};
+const fmtT=t=>{const[h,m]=t.split(':').map(Number);const hh=h%24;const ap=hh>=12?'PM':'AM';const d=hh===0?12:hh>12?hh-12:hh;return`${d}:${String(m).padStart(2,'0')} ${ap}`;};
+const slug=s=>s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/-$/,'');
+
+/* ─── B2B ARTIST NAME FORMATTER ──────────────────────────────── */
+const WORD_SPLITS={'INTERPLANETARY':'INTER-\nPLANETARY','AUDIOFREQ':'AUDIO-\nFREQ','TONESHIFTERZ':'TONE-\nSHIFTERZ','SAMPLIFIRE':'SAMPLE-\nFIRE','KLANGKUENSTLER':'KLANG-\nKUENSTLER'};
+
+function ArtistName({name,size=15,weight=700,color='#fff',noWrap=false}){
+  // Split on B2B — B2B goes at END of its line
+  const parts=name.split(/\s+B2B\s+/i);
+  if(parts.length===1){
+    // Check for long word splits
+    let display=name;
+    for(const[k,v] of Object.entries(WORD_SPLITS)){
+      if(name.toUpperCase().includes(k)){display=name.toUpperCase().replace(k,v);break;}
+    }
+    const lines=display.split('\n');
+    return(
+      <div className="sora" style={{fontWeight:weight,fontSize:size,color,lineHeight:1.15}}>
+        {lines.map((l,i)=><div key={i}>{l}</div>)}
+      </div>
+    );
+  }
+  return(
+    <div className="sora" style={{fontWeight:weight,fontSize:size,color,lineHeight:1.2}}>
+      {parts.map((p,i)=>(
+        <div key={i} style={{display:'block'}}>
+          {p}
+          {i<parts.length-1&&<span style={{fontSize:size*.72,color:'rgba(255,255,255,.4)',letterSpacing:'.06em'}}> B2B</span>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ─── SCHEDULE DATA ──────────────────────────────────────────── */
+const RAW=[
+  {stage:'kineticFIELD',day:1,artist:'LAIDBACK LUKE B2B CHUCKIE',s:'19:00',e:'20:00'},
+  {stage:'kineticFIELD',day:1,artist:'KOROLOVA',s:'20:00',e:'21:00'},
+  {stage:'kineticFIELD',day:1,artist:'ARGY',s:'21:00',e:'22:00'},
+  {stage:'kineticFIELD',day:1,artist:'CHRIS LORENZO',s:'22:07',e:'23:15'},
+  {stage:'kineticFIELD',day:1,artist:'PORTER ROBINSON',s:'23:15',e:'25:47'},
+  {stage:'kineticFIELD',day:1,artist:'FISHER',s:'25:47',e:'26:57'},
+  {stage:'kineticFIELD',day:1,artist:'CHARLOTTE DE WITTE',s:'28:14',e:'29:28'},
+  {stage:'kineticFIELD',day:2,artist:'AR/CO',s:'19:00',e:'20:00'},
+  {stage:'kineticFIELD',day:2,artist:'HAYLA',s:'20:00',e:'21:00'},
+  {stage:'kineticFIELD',day:2,artist:'STEVE AOKI',s:'21:00',e:'23:19'},
+  {stage:'kineticFIELD',day:2,artist:'HARDWELL',s:'23:19',e:'24:28'},
+  {stage:'kineticFIELD',day:2,artist:'JOHN SUMMIT',s:'24:32',e:'25:40'},
+  {stage:'kineticFIELD',day:2,artist:'KASKADE',s:'27:01',e:'28:10'},
+  {stage:'kineticFIELD',day:2,artist:'ABOVE & BEYOND',s:'28:14',e:'29:28'},
+  {stage:'kineticFIELD',day:3,artist:'LAYTON GIORDANI',s:'21:00',e:'22:00'},
+  {stage:'kineticFIELD',day:3,artist:'FUNK TRIBU',s:'22:07',e:'23:15'},
+  {stage:'kineticFIELD',day:3,artist:'GRIZ B2B WOOLI',s:'23:19',e:'24:28'},
+  {stage:'kineticFIELD',day:3,artist:'MARTIN GARRIX',s:'24:28',e:'25:30'},
+  {stage:'kineticFIELD',day:3,artist:'ZEDD',s:'25:30',e:'27:01'},
+  {stage:'kineticFIELD',day:3,artist:'CLOONEE',s:'27:01',e:'28:10'},
+  {stage:'kineticFIELD',day:3,artist:'ARMIN VAN BUUREN',s:'28:14',e:'29:28'},
+  {stage:'neonGARDEN',day:1,artist:'ANASTAZJA',s:'19:00',e:'20:30'},
+  {stage:'neonGARDEN',day:1,artist:'DJ TENNIS B2B CHLOE CAILLET',s:'22:00',e:'23:30'},
+  {stage:'neonGARDEN',day:1,artist:'ADRIATIQUE',s:'25:00',e:'26:30'},
+  {stage:'neonGARDEN',day:1,artist:'JOSEPH CAPRIATI',s:'26:30',e:'28:00'},
+  {stage:'neonGARDEN',day:1,artist:'ELI BROWN',s:'28:00',e:'29:30'},
+  {stage:'neonGARDEN',day:2,artist:'AHMED SPINS',s:'22:00',e:'23:30'},
+  {stage:'neonGARDEN',day:2,artist:'LUCIANO',s:'23:30',e:'25:30'},
+  {stage:'neonGARDEN',day:2,artist:'JOSH BAKER B2B KETTAMA B2B PROSPA',s:'27:30',e:'29:30'},
+  {stage:'neonGARDEN',day:3,artist:'BAD BEAT',s:'19:00',e:'20:15'},
+  {stage:'neonGARDEN',day:3,artist:'ADIEL',s:'21:30',e:'22:50'},
+  {stage:'neonGARDEN',day:3,artist:'DJ GIGOLA',s:'22:50',e:'24:10'},
+  {stage:'neonGARDEN',day:3,artist:'999999999',s:'24:10',e:'25:30'},
+  {stage:'neonGARDEN',day:3,artist:'INDIRA PAGANOTTO',s:'25:30',e:'26:50'},
+  {stage:'neonGARDEN',day:3,artist:'KI/KI',s:'26:50',e:'28:10'},
+  {stage:'neonGARDEN',day:3,artist:'KLANGKUENSTLER',s:'28:10',e:'29:30'},
+  {stage:'circuitGROUNDS',day:1,artist:'1991',s:'19:00',e:'20:00'},
+  {stage:'circuitGROUNDS',day:1,artist:'BOU',s:'20:00',e:'21:00'},
+  {stage:'circuitGROUNDS',day:1,artist:'I HATE MODELS',s:'22:00',e:'23:15'},
+  {stage:'circuitGROUNDS',day:1,artist:'LEVITY',s:'23:15',e:'24:25'},
+  {stage:'circuitGROUNDS',day:1,artist:'HOLY PRIEST',s:'26:35',e:'27:30'},
+  {stage:'circuitGROUNDS',day:1,artist:'LEVEL UP',s:'28:30',e:'29:30'},
+  {stage:'circuitGROUNDS',day:2,artist:'DJ MANDY',s:'19:00',e:'20:00'},
+  {stage:'circuitGROUNDS',day:2,artist:'KETTAMA',s:'21:15',e:'22:45'},
+  {stage:'circuitGROUNDS',day:2,artist:'BOYS NOIZE',s:'27:15',e:'28:30'},
+  {stage:'circuitGROUNDS',day:2,artist:'LILLY PALMER',s:'28:30',e:'29:30'},
+  {stage:'circuitGROUNDS',day:3,artist:'LINSKA',s:'19:00',e:'20:30'},
+  {stage:'circuitGROUNDS',day:3,artist:'ANNA',s:'20:30',e:'22:00'},
+  {stage:'circuitGROUNDS',day:3,artist:'BELTRAN',s:'22:00',e:'23:30'},
+  {stage:'circuitGROUNDS',day:3,artist:'CHRIS STUSSY',s:'23:30',e:'25:00'},
+  {stage:'circuitGROUNDS',day:3,artist:'KEVIN DE VRIES',s:'28:00',e:'29:30'},
+  {stage:'stereoBLOOM',day:1,artist:'ABANA B2B JULIET MENDOZA',s:'19:00',e:'20:00'},
+  {stage:'stereoBLOOM',day:1,artist:'JOSH BAKER',s:'24:45',e:'26:00'},
+  {stage:'stereoBLOOM',day:2,artist:'DISCIP',s:'21:00',e:'22:00'},
+  {stage:'stereoBLOOM',day:2,artist:'CID',s:'25:45',e:'27:00'},
+  {stage:'stereoBLOOM',day:2,artist:'HNTR',s:'27:00',e:'28:15'},
+  {stage:'stereoBLOOM',day:2,artist:'BOLO',s:'28:15',e:'29:30'},
+  {stage:'stereoBLOOM',day:3,artist:'KLO',s:'19:00',e:'20:00'},
+  {stage:'stereoBLOOM',day:3,artist:'HAMDI',s:'23:45',e:'25:00'},
+  {stage:'stereoBLOOM',day:3,artist:'CHRIS LORENZO B2B BULLET TOOTH',s:'25:00',e:'26:15'},
+  {stage:'stereoBLOOM',day:3,artist:'LU.RE',s:'28:30',e:'29:30'},
+  {stage:'cosmicMEADOW',day:1,artist:'JACKIE HOLLANDER',s:'19:00',e:'19:55'},
+  {stage:'cosmicMEADOW',day:1,artist:'FROST CHILDREN',s:'21:00',e:'22:15'},
+  {stage:'cosmicMEADOW',day:2,artist:'FROST CHILDREN',s:'19:00',e:'20:15'},
+  {stage:'cosmicMEADOW',day:2,artist:'HANNAH LAING',s:'20:15',e:'21:25'},
+  {stage:'cosmicMEADOW',day:2,artist:'BUNT.',s:'24:40',e:'26:10'},
+  {stage:'cosmicMEADOW',day:2,artist:'INTERPLANETARY CRIMINAL',s:'26:10',e:'27:30'},
+  {stage:'cosmicMEADOW',day:2,artist:'DJ GIGOLA B2B MCR-T',s:'28:30',e:'29:30'},
+  {stage:'cosmicMEADOW',day:3,artist:'GRAVAGERZ',s:'19:00',e:'20:00'},
+  {stage:'cosmicMEADOW',day:3,artist:'DABIN',s:'23:00',e:'24:05'},
+  {stage:'cosmicMEADOW',day:3,artist:'ALISON WONDERLAND',s:'24:05',e:'25:05'},
+  {stage:'cosmicMEADOW',day:3,artist:'BLACK TIGER SEX MACHINE',s:'27:20',e:'28:30'},
+  {stage:'bassPOD',day:1,artist:'HEYZ',s:'20:40',e:'21:30'},
+  {stage:'bassPOD',day:1,artist:'GORILLAT',s:'22:30',e:'23:30'},
+  {stage:'bassPOD',day:1,artist:'GHENGAR',s:'23:30',e:'24:30'},
+  {stage:'bassPOD',day:1,artist:'ATLIENS',s:'24:30',e:'25:30'},
+  {stage:'bassPOD',day:1,artist:'KAI WACHI',s:'25:30',e:'26:30'},
+  {stage:'bassPOD',day:1,artist:'ADVENTURE CLUB',s:'26:30',e:'27:30'},
+  {stage:'bassPOD',day:1,artist:'CULTURE SHOCK',s:'27:30',e:'28:30'},
+  {stage:'bassPOD',day:1,artist:'CYCLOPS',s:'28:30',e:'29:30'},
+  {stage:'bassPOD',day:2,artist:'FALLEN WITH MC DINO',s:'19:00',e:'19:50'},
+  {stage:'bassPOD',day:2,artist:'AVELLO B2B DENNETT',s:'19:50',e:'20:40'},
+  {stage:'bassPOD',day:2,artist:'HYBRID MINDS',s:'21:30',e:'22:30'},
+  {stage:'bassPOD',day:2,artist:'DELTA HEAVY',s:'23:30',e:'24:30'},
+  {stage:'bassPOD',day:2,artist:'GETTER',s:'24:30',e:'25:30'},
+  {stage:'bassPOD',day:2,artist:'EPTIC B2B SPACE LACES',s:'25:30',e:'26:30'},
+  {stage:'bassPOD',day:2,artist:'DOCTOR P B2B FLUX PAVILION B2B FUNTCASE',s:'26:30',e:'27:30'},
+  {stage:'bassPOD',day:2,artist:'HOL!',s:'27:30',e:'28:30'},
+  {stage:'bassPOD',day:3,artist:'EAZYBAKED',s:'20:40',e:'21:30'},
+  {stage:'bassPOD',day:3,artist:'INFEKT B2B SAMPLIFIRE',s:'21:30',e:'22:30'},
+  {stage:'bassPOD',day:3,artist:'A.M.C',s:'22:30',e:'23:30'},
+  {stage:'bassPOD',day:3,artist:'AHEE B2B LIQUID STRANGER',s:'25:30',e:'26:30'},
+  {stage:'bassPOD',day:3,artist:'BOOGIE T B2B DISTINCT MOTIVE',s:'27:30',e:'28:30'},
+  {stage:'bassPOD',day:3,artist:'AEON:MODE',s:'28:30',e:'29:30'},
+  {stage:'wasteland',day:1,artist:'DOMINA',s:'19:00',e:'20:30'},
+  {stage:'wasteland',day:1,artist:'JOHANNES SCHUSTER',s:'21:30',e:'22:30'},
+  {stage:'wasteland',day:1,artist:'ADRIAN MILLS',s:'22:30',e:'23:30'},
+  {stage:'wasteland',day:1,artist:'CLOUDY',s:'23:30',e:'24:30'},
+  {stage:'wasteland',day:1,artist:'KUKO',s:'24:30',e:'25:30'},
+  {stage:'wasteland',day:1,artist:'GRAVEDGR',s:'25:30',e:'26:30'},
+  {stage:'wasteland',day:1,artist:'DYEN',s:'27:30',e:'28:30'},
+  {stage:'wasteland',day:2,artist:'CUTDWN',s:'19:00',e:'20:30'},
+  {stage:'wasteland',day:2,artist:'DEAD X',s:'20:30',e:'21:30'},
+  {stage:'wasteland',day:2,artist:'LADY FAITH B2B LNY TNZ',s:'23:30',e:'24:30'},
+  {stage:'wasteland',day:2,artist:'CODE BLACK B2B AUDIOFREQ B2B TONESHIFTERZ',s:'24:30',e:'25:30'},
+  {stage:'wasteland',day:2,artist:'DA TWEEKAZ',s:'25:30',e:'26:30'},
+  {stage:'wasteland',day:2,artist:'LIL TEXAS',s:'26:30',e:'27:30'},
+  {stage:'wasteland',day:2,artist:'ALYSSA JOLEE',s:'28:30',e:'29:30'},
+  {stage:'wasteland',day:3,artist:'CLAWZ',s:'20:30',e:'21:30'},
+  {stage:'wasteland',day:3,artist:'DJ ISAAC',s:'23:30',e:'24:30'},
+  {stage:'quantumValley',day:1,artist:'COLD BLUE',s:'21:00',e:'22:00'},
+  {stage:'quantumValley',day:1,artist:'DARUDE',s:'23:00',e:'24:00'},
+  {stage:'quantumValley',day:1,artist:'COSMIC GATE',s:'24:00',e:'25:00'},
+  {stage:'quantumValley',day:1,artist:'GARETH EMERY',s:'25:00',e:'26:00'},
+  {stage:'quantumValley',day:1,artist:'ILAN BLUESTONE',s:'26:00',e:'27:00'},
+  {stage:'quantumValley',day:1,artist:'DARREN PORTER',s:'28:00',e:'29:30'},
+  {stage:'quantumValley',day:2,artist:'BILLY GILLIES',s:'21:30',e:'22:30'},
+  {stage:'quantumValley',day:2,artist:'ANDREW RAYEL',s:'23:30',e:'24:30'},
+  {stage:'quantumValley',day:2,artist:'ASTRIX',s:'26:30',e:'27:30'},
+  {stage:'quantumValley',day:3,artist:'CRISTOPH',s:'22:00',e:'23:00'},
+  {stage:'quantumValley',day:3,artist:'ELI & FUR',s:'23:00',e:'24:00'},
+  {stage:'quantumValley',day:3,artist:'CASSIAN',s:'25:00',e:'26:15'},
+  {stage:'quantumValley',day:3,artist:'INNELLEA',s:'27:30',e:'28:30'},
+  {stage:'quantumValley',day:3,artist:'KREAM',s:'28:30',e:'29:30'},
+  {stage:'bionicJungle',day:1,artist:'HEIDI LAWDEN B2B MASHA MAR',s:'17:00',e:'19:00'},
+  {stage:'bionicJungle',day:1,artist:'AVALON EMERSON',s:'28:00',e:'29:30'},
+  {stage:'bionicJungle',day:2,artist:'BASHKKA B2B SEDEF ADASI',s:'21:00',e:'22:30'},
+  {stage:'bionicJungle',day:2,artist:'HAAI B2B LUKE ALESSI',s:'22:30',e:'24:00'},
+  {stage:'bionicJungle',day:2,artist:'BAD BOOMBOX B2B OLLIE LISHMAN',s:'25:15',e:'26:30'},
+  {stage:'bionicJungle',day:2,artist:'BENWAL',s:'26:30',e:'27:30'},
+  {stage:'bionicJungle',day:2,artist:'BAUGRUPPE90',s:'27:30',e:'28:30'},
+  {stage:'bionicJungle',day:2,artist:'CLUB ANGEL',s:'28:30',e:'29:30'},
+  {stage:'bionicJungle',day:3,artist:'ALVES',s:'19:00',e:'20:30'},
+  {stage:'bionicJungle',day:3,artist:'ISABELLA',s:'20:30',e:'22:30'},
+  {stage:'bionicJungle',day:3,artist:'KINAHAU',s:'22:30',e:'24:00'},
+  {stage:'bionicJungle',day:3,artist:'DJ TENNIS B2B RED AXES',s:'25:30',e:'27:30'},
+  {stage:'bionicJungle',day:3,artist:'BELTRAN B2B SIMAS',s:'27:30',e:'29:30'},
+];
+
+const SCHEDULE=RAW.map(r=>({
+  ...r,
+  id:`${SC[r.stage]?.short}-${slug(r.artist)}-d${r.day}`,
+  cs:r.s,ce:r.e,
+}));
+
+/* ─── FESTIVAL TIMING ────────────────────────────────────────── */
+const DAY_STARTS=[
+  new Date('2026-05-15T17:00:00-07:00'),
+  new Date('2026-05-16T17:00:00-07:00'),
+  new Date('2026-05-17T17:00:00-07:00'),
+];
+const FEST_END=new Date('2026-05-18T05:30:00-07:00');
+
+function getPhase(now=Date.now()){
+  const t=new Date(now);
+  if(t<DAY_STARTS[0])return{phase:'pre'};
+  if(t>FEST_END)return{phase:'post'};
+  for(let i=2;i>=0;i--){
+    const end=new Date(DAY_STARTS[i].getTime()+12.5*3600000);
+    if(t>=DAY_STARTS[i]&&t<=end)return{phase:'live',day:i+1,dayStart:DAY_STARTS[i]};
+  }
+  for(let i=0;i<2;i++){
+    const pe=new Date(DAY_STARTS[i].getTime()+12.5*3600000);
+    if(t>pe&&t<DAY_STARTS[i+1])return{phase:'inter',nextDay:i+2,nextStart:DAY_STARTS[i+1]};
+  }
+  return{phase:'live',day:1,dayStart:DAY_STARTS[0]};
+}
+
+/* ─── CONFLICT RECON ─────────────────────────────────────────── */
+function reconflict(selectedIds){
+  const result={};
+  for(const day of[1,2,3]){
+    const sel=SCHEDULE.filter(s=>selectedIds.includes(s.id)&&s.day===day)
+      .sort((a,b)=>toM(a.cs)-toM(b.cs))
+      .map(s=>({...s}));
+    for(let i=0;i<sel.length-1;i++){
+      const a=sel[i],b=sel[i+1];
+      const ov=toM(a.ce)-toM(b.cs);
+      if(ov>0){
+        if(ov<=15){sel[i]={...a,ce:b.cs,trimmed:true,trimMin:ov};}
+        else{sel[i]={...a,conflict:true};sel[i+1]={...b,conflict:true};}
+      }
+    }
+    sel.forEach(s=>{result[s.id]=s;});
+  }
+  return result;
+}
+
+/* ─── STORAGE & SHARE ────────────────────────────────────────── */
+const LS={
+  get:(k,d)=>{try{const v=localStorage.getItem(k);return v!=null?JSON.parse(v):d;}catch{return d;}},
+  set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch{}},
+};
+const encShare=ids=>ids.length?'#s='+ids.join('.'):'';;
+const decShare=h=>{if(!h?.startsWith('#s='))return null;const ids=h.slice(3).split('.').filter(Boolean);const v=ids.filter(id=>SCHEDULE.some(s=>s.id===id));return v.length?v:null;};
+const hap=(ms=8)=>{try{navigator.vibrate&&navigator.vibrate(ms);}catch{}};
+
+/* ─── APP STATE ──────────────────────────────────────────────── */
+function useApp(){
+  const sharedOnLoad=useMemo(()=>decShare(window.location.hash),[]);
+  const[sel,setSel]=useState(()=>LS.get('sel',[]));
+  const[crew,setCrew]=useState(()=>LS.get('crew',[]));
+  const[markers,setMarkers]=useState(()=>LS.get('markers',[]));
+  const[pins,setPins]=useState(()=>LS.get('pins',[]));
+  const[shared,setShared]=useState(sharedOnLoad);
+  useEffect(()=>{LS.set('sel',sel);},[sel]);
+  useEffect(()=>{LS.set('crew',crew);},[crew]);
+  useEffect(()=>{LS.set('markers',markers);},[markers]);
+  useEffect(()=>{LS.set('pins',pins);},[pins]);
+  useEffect(()=>{if(!sharedOnLoad)history.replaceState(null,'',encShare(sel)||location.pathname);},[sel,sharedOnLoad]);
+  const recon=useMemo(()=>reconflict(sel),[sel]);
+  const toggle=useCallback(id=>{hap();setSel(p=>p.includes(id)?p.filter(x=>x!==id):[...p,id]);},[]);
+  return{sel,toggle,recon,crew,setCrew,markers,setMarkers,pins,setPins,shared,setShared};
+}
+
+function useClock(){
+  const[now,setNow]=useState(Date.now());
+  useEffect(()=>{const t=setInterval(()=>setNow(Date.now()),1000);return()=>clearInterval(t);},[]);
+  return now;
+}
+
+/* ─── SCREEN HEADER ──────────────────────────────────────────── */
+function ScreenHeader({img,height=180,children,topFade=true}){
+  return(
+    <div style={{position:'relative',height,overflow:'hidden',flexShrink:0}}>
+      <img src={HD(img)} alt="" style={{
+        position:'absolute',bottom:0,left:0,width:'100%',
+        objectFit:'cover',objectPosition:'center bottom',
+        mixBlendMode:'screen',opacity:1,
+        height:'100%',
+      }}/>
+      {topFade&&<div style={{position:'absolute',inset:0,background:'linear-gradient(to bottom,rgba(8,12,24,.7) 0%,transparent 45%)'}}/>}
+      <div style={{position:'absolute',inset:0,background:'linear-gradient(to top,#080c18 0%,rgba(8,12,24,.3) 55%,transparent 100%)'}}/>
+      <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',justifyContent:'flex-end',padding:'0 20px 18px'}}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/* ─── BOTTOM NAV ─────────────────────────────────────────────── */
+const NAV=[
+  {id:'home',   icon:'nav-home.webp',    label:'Home'},
+  {id:'schedule',icon:'nav-schedule.webp',label:'Schedule'},
+  {id:'map',    icon:'nav-map.webp',     label:'Map'},
+  {id:'crew',   icon:'nav-kit.webp',     label:'Crew'},
+];
+
+function BottomNav({tab,setTab}){
+  return(
+    <nav style={{
+      position:'absolute',bottom:0,left:0,right:0,zIndex:100,
+      background:'rgba(8,12,24,.97)',backdropFilter:'blur(24px)',
+      borderTop:'1px solid rgba(255,255,255,.07)',
+      display:'flex',paddingBottom:'env(safe-area-inset-bottom,12px)',
+    }}>
+      {NAV.map(t=>{
+        const act=tab===t.id;
+        return(
+          <button key={t.id} onClick={()=>{hap(5);setTab(t.id);}} style={{
+            flex:1,display:'flex',flexDirection:'column',alignItems:'center',
+            gap:3,paddingTop:10,paddingBottom:3,transition:'all .18s',
+          }}>
+            <img src={IC(`core-navigation/${t.icon}`)} alt="" className="icon-img" style={{
+              width:26,height:26,
+              opacity:act?1:.28,
+              filter:act?`drop-shadow(0 0 8px #fc3cbf) drop-shadow(0 0 16px #fc3cbf88)`:'none',
+              transition:'all .18s',
+            }}/>
+            <span style={{fontSize:9,fontWeight:600,letterSpacing:'.08em',textTransform:'uppercase',color:act?'#fc3cbf':'rgba(255,255,255,.22)',transition:'color .18s'}}>{t.label}</span>
+          </button>
+        );
+      })}
+    </nav>
+  );
+}
+
+/* ─── SET CARD ───────────────────────────────────────────────── */
+function SetCard({set,sel,onToggle,recon,shared}){
+  const sc=SC[set.stage];
+  const isSel=sel.includes(set.id);
+  const rec=recon[set.id]||set;
+  const isShared=shared&&shared.includes(set.id)&&!isSel;
+  const isBoth=shared&&shared.includes(set.id)&&isSel;
+
+  return(
+    <div onClick={()=>onToggle(set.id)} style={{
+      background:isSel?`linear-gradient(145deg,${sc.p}1a,rgba(8,12,24,.8))`:'rgba(255,255,255,.025)',
+      border:`1px solid ${isSel?sc.p+'55':'rgba(255,255,255,.06)'}`,
+      borderLeft:`3px solid ${isSel?sc.p:isShared?sc.p+'55':'rgba(255,255,255,.09)'}`,
+      borderRadius:14,padding:'13px 14px',marginBottom:8,
+      display:'flex',gap:12,alignItems:'flex-start',cursor:'pointer',
+      boxShadow:isSel?`0 4px 24px ${sc.p}22`:'none',
+      transition:'all .15s',position:'relative',
+    }}>
+      {/* Time */}
+      <div style={{width:54,flexShrink:0,textAlign:'right',paddingTop:2}}>
+        <div className="mono" style={{fontSize:11,color:isSel?'#fff':'rgba(255,255,255,.5)',lineHeight:1.3}}>{fmtT(set.s)}</div>
+        <div className="mono" style={{fontSize:9.5,color:'rgba(255,255,255,.2)',marginTop:2}}>{fmtT(set.e)}</div>
+      </div>
+      {/* Info */}
+      <div style={{flex:1,minWidth:0}}>
+        <ArtistName name={set.artist} size={isSel?14:13.5} weight={isSel?700:600} color={isSel?'#fff':'rgba(255,255,255,.82)'}/>
+        <div style={{marginTop:5}}>
+          <img src={IC(`stage-identity/lockups/stage-${sc.key}-lockup.webp`)} alt={sc.label} className="icon-img lockup-img" style={{height:14,opacity:isSel?.9:.55}}/>
+        </div>
+        {isSel&&(
+          <div style={{marginTop:7,display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
+            <span className="mono" style={{fontSize:9,color:'rgba(255,255,255,.3)'}}>CATCH {fmtT(rec.cs)}–{fmtT(rec.ce)}</span>
+            {rec.trimmed&&<span style={{fontSize:8.5,color:sc.s,background:`${sc.s}18`,borderRadius:4,padding:'1px 6px',fontWeight:600}}>trimmed −{rec.trimMin}m</span>}
+            {rec.conflict&&(
+              <span style={{display:'flex',alignItems:'center',gap:4,fontSize:8.5,color:'#ff5555',background:'rgba(255,85,85,.12)',borderRadius:4,padding:'1px 6px'}}>
+                <img src={IC('status-action/action-alert.webp')} alt="!" className="icon-img" style={{width:10,height:10}}/>conflict
+              </span>
+            )}
+          </div>
+        )}
+        {isShared&&(
+          <div style={{marginTop:4,fontSize:9.5,color:sc.p,opacity:.7}}>● friend is catching this</div>
+        )}
+      </div>
+      {/* Select indicator */}
+      <div style={{
+        width:24,height:24,borderRadius:'50%',flexShrink:0,marginTop:1,
+        background:isSel?sc.p:isShared?`${sc.p}22`:'rgba(255,255,255,.06)',
+        border:`1.5px solid ${isSel?sc.p:isShared?sc.p:'rgba(255,255,255,.12)'}`,
+        display:'flex',alignItems:'center',justifyContent:'center',
+        boxShadow:isSel?`0 0 14px ${sc.p}88`:'none',
+        transition:'all .15s',
+      }}>
+        {isSel&&<img src={IC('status-action/action-favorite.webp')} alt="✓" className="icon-img" style={{width:12,height:12}}/>}
+        {isShared&&<div style={{width:6,height:6,borderRadius:'50%',background:sc.p}}/>}
+      </div>
+    </div>
+  );
+}
+
+/* ─── HOME ───────────────────────────────────────────────────── */
+function HomeScreen({sel,toggle,recon,shared}){
+  const now=useClock();
+  const phase=getPhase(now);
+  if(phase.phase==='pre')return<HomeCountdown now={now} sel={sel}/>;
+  if(phase.phase==='live')return<HomeLive now={now} day={phase.day} dayStart={phase.dayStart} sel={sel} toggle={toggle} recon={recon} shared={shared}/>;
+  if(phase.phase==='inter')return<HomeInter nextDay={phase.nextDay} nextStart={phase.nextStart} now={now}/>;
+  return<HomePost sel={sel}/>;
+}
+
+function HomeCountdown({now,sel}){
+  const t=DAY_STARTS[0]-now;
+  const dd=Math.max(0,t);
+  const d=Math.floor(dd/86400000),h=Math.floor((dd%86400000)/3600000),m=Math.floor((dd%3600000)/60000),s=Math.floor((dd%60000)/1000);
+  const pad=n=>String(n).padStart(2,'0');
+  const units=d>0?[{v:pad(d),l:'DAYS'},{v:pad(h),l:'HRS'},{v:pad(m),l:'MIN'},{v:pad(s),l:'SEC'}]:[{v:pad(h),l:'HRS'},{v:pad(m),l:'MIN'},{v:pad(s),l:'SEC'}];
+
+  return(
+    <div className="screen" style={{paddingBottom:88}}>
+      {/* Hero header — full height for countdown */}
+      <div style={{position:'relative',height:340,overflow:'hidden'}}>
+        <img src={HD('header-home.webp')} alt="" style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',objectPosition:'center',mixBlendMode:'screen'}}/>
+        <div style={{position:'absolute',inset:0,background:'linear-gradient(180deg,rgba(8,12,24,.5) 0%,rgba(8,12,24,0) 40%,rgba(8,12,24,.9) 90%,#080c18 100%)'}}/>
+        <div style={{position:'absolute',bottom:24,left:0,right:0,textAlign:'center'}}>
+          <div className="sora" style={{fontWeight:800,fontSize:11,color:'rgba(255,255,255,.4)',letterSpacing:'.32em',textTransform:'uppercase',marginBottom:6}}>Las Vegas · May 15–17 · 30th Anniversary</div>
+          <div className="sora" style={{fontWeight:400,fontSize:13,color:'rgba(255,255,255,.28)',fontStyle:'italic',letterSpacing:'.04em'}}>the electric sky doesn't judge</div>
+        </div>
+      </div>
+
+      <div style={{padding:'0 20px'}}>
+        {/* Countdown */}
+        <div style={{background:'rgba(255,255,255,.03)',border:'1px solid rgba(252,60,191,.14)',borderRadius:22,padding:'24px 20px 20px',marginBottom:20,textAlign:'center'}}>
+          <div style={{fontSize:10,color:'rgba(255,255,255,.25)',letterSpacing:'.22em',textTransform:'uppercase',marginBottom:18}}>Gates Open In</div>
+          <div style={{display:'flex',justifyContent:'center',gap:d>0?8:12}}>
+            {units.map(({v,l})=>(
+              <div key={l} style={{textAlign:'center',minWidth:d>0?52:68}}>
+                <div className="sora" style={{fontWeight:800,fontSize:d>0?40:52,color:'#fff',lineHeight:1,textShadow:'0 0 30px rgba(252,60,191,.8)'}}>{v}</div>
+                <div style={{fontSize:9,color:'rgba(255,255,255,.2)',letterSpacing:'.18em',marginTop:5}}>{l}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Lineup teaser */}
+        {sel.length>0&&(
+          <div style={{marginBottom:20}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+              <span className="section-label" style={{margin:0}}>My Lineup</span>
+              <span style={{fontSize:12,color:'#fc3cbf',fontWeight:600}}>{sel.length} sets locked in</span>
+            </div>
+            {[1,2,3].map(dn=>{
+              const ds=SCHEDULE.filter(s=>sel.includes(s.id)&&s.day===dn).sort((a,b)=>toM(a.s)-toM(b.s));
+              if(!ds.length)return null;
+              return(
+                <div key={dn} style={{marginBottom:14}}>
+                  <div className="section-label" style={{marginBottom:6}}>{['FRIDAY','SATURDAY','SUNDAY'][dn-1]}</div>
+                  {ds.slice(0,3).map(s=>{
+                    const sc=SC[s.stage];
+                    return(
+                      <div key={s.id} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 0',borderBottom:'1px solid rgba(255,255,255,.04)'}}>
+                        <div style={{width:3,height:32,borderRadius:2,background:`linear-gradient(${sc.p},${sc.s})`,flexShrink:0,boxShadow:`0 0 6px ${sc.p}88`}}/>
+                        <div style={{flex:1,minWidth:0}}>
+                          <ArtistName name={s.artist} size={13} weight={700}/>
+                          <img src={IC(`stage-identity/lockups/stage-${sc.key}-lockup.webp`)} alt={sc.label} className="icon-img" style={{height:12,marginTop:3,opacity:.6,mixBlendMode:'screen'}}/>
+                        </div>
+                        <div className="mono" style={{fontSize:10,color:'rgba(255,255,255,.3)',flexShrink:0}}>{fmtT(s.s)}</div>
+                      </div>
+                    );
+                  })}
+                  {ds.length>3&&<div style={{fontSize:11,color:'rgba(255,255,255,.2)',textAlign:'center',marginTop:8}}>+{ds.length-3} more</div>}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {sel.length===0&&(
+          <div style={{textAlign:'center',padding:'32px 0',color:'rgba(255,255,255,.18)',fontSize:13}}>head to schedule to plan your night ↗</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function HomeLive({now,day,dayStart,sel,toggle,recon,shared}){
+  const elapsed=(now-dayStart.getTime())/60000;
+  const festMin=17*60+elapsed;
+  const daySets=SCHEDULE.filter(s=>s.day===day&&STAGES.includes(s.stage));
+  const playing=daySets.filter(s=>festMin>=toM(s.s)&&festMin<toM(s.e));
+  const myNow=playing.find(s=>sel.includes(s.id));
+  const hero=myNow||playing[0]||null;
+  const heroSc=hero?SC[hero.stage]:SC.kineticFIELD;
+  const pct=hero?Math.min(100,Math.max(0,Math.round((festMin-toM(hero.s))/(toM(hero.e)-toM(hero.s))*100))):0;
+  const myNext=sel.length?SCHEDULE.filter(s=>s.day===day&&sel.includes(s.id)&&toM(s.s)>festMin).sort((a,b)=>toM(a.s)-toM(b.s))[0]:null;
+  const others=playing.filter(s=>s.id!==hero?.id);
+
+  let leaveBy=null;
+  if(myNext&&myNow){
+    const lm=toM(myNext.s)-5;
+    const diff=Math.max(0,(dayStart.getTime()+(lm-17*60)*60000)-now);
+    const mins=Math.floor(diff/60000),secs=Math.floor((diff%60000)/1000);
+    leaveBy=diff<600000?`${mins}:${String(secs).padStart(2,'0')}`:`${mins}m`;
+  }
+
+  return(
+    <div className="screen" style={{paddingBottom:88}}>
+      {/* Live hero */}
+      <div style={{position:'relative',minHeight:hero?360:240,overflow:'hidden'}}>
+        <img src={HD('header-home-live.webp')} alt="" style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',objectPosition:'center',mixBlendMode:'screen',opacity:.7}}/>
+        {hero&&<div style={{position:'absolute',inset:0,background:`radial-gradient(ellipse 80% 60% at 50% 0%,${heroSc.p}22,transparent 65%)`}}/>}
+        <div style={{position:'absolute',inset:0,background:'linear-gradient(180deg,rgba(8,12,24,.4) 0%,transparent 25%,rgba(8,12,24,.88) 100%)'}}/>
+        <div style={{position:'relative',padding:'50px 20px 24px'}}>
+          {/* Live badge */}
+          <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:20}}>
+            <div style={{display:'flex',alignItems:'center',gap:6,background:'rgba(255,45,120,.1)',border:'1px solid rgba(255,45,120,.35)',borderRadius:20,padding:'5px 12px'}}>
+              <div style={{width:7,height:7,borderRadius:'50%',background:'#ff2d78',boxShadow:'0 0 10px #ff2d78'}} className="pulse"/>
+              <span className="sora" style={{fontWeight:700,fontSize:11,color:'#ff2d78',letterSpacing:'.14em'}}>LIVE</span>
+            </div>
+            <span style={{fontSize:11,color:'rgba(255,255,255,.3)'}}>{'Fri Sat Sun'.split(' ')[day-1]} May {14+day}</span>
+            {myNow&&<span style={{fontSize:11,color:heroSc.p,fontWeight:600}}>· your set</span>}
+          </div>
+          {hero?(
+            <>
+              <div style={{fontSize:10,color:'rgba(255,255,255,.3)',letterSpacing:'.18em',textTransform:'uppercase',marginBottom:8}}>
+                On Now
+                <img src={IC(`stage-identity/lockups/stage-${heroSc.key}-lockup.webp`)} alt={heroSc.label} className="icon-img" style={{display:'inline-block',height:13,marginLeft:8,verticalAlign:'middle',mixBlendMode:'screen',opacity:.7}}/>
+              </div>
+              <ArtistName name={hero.artist} size={Math.min(36,Math.max(22,580/hero.artist.length))} weight={800} color="#fff"/>
+              <div className="mono" style={{fontSize:12,color:'rgba(255,255,255,.4)',marginTop:8,marginBottom:16}}>{fmtT(hero.s)} – {fmtT(hero.e)}</div>
+              <div>
+                <div style={{display:'flex',justifyContent:'space-between',marginBottom:5}}>
+                  <span style={{fontSize:9,color:'rgba(255,255,255,.22)',letterSpacing:'.1em'}}>SET IN PROGRESS</span>
+                  <span className="mono" style={{fontSize:9,color:heroSc.p}}>{pct}%</span>
+                </div>
+                <div style={{height:4,borderRadius:2,background:'rgba(255,255,255,.08)',overflow:'hidden'}}>
+                  <div style={{width:`${pct}%`,height:'100%',background:`linear-gradient(90deg,${heroSc.p}88,${heroSc.p})`,boxShadow:`0 0 12px ${heroSc.p}`,transition:'width 1s linear'}}/>
+                </div>
+              </div>
+            </>
+          ):(
+            <div style={{textAlign:'center',padding:'20px 0',color:'rgba(255,255,255,.3)',fontSize:13}}>
+              <div className="sora" style={{fontWeight:600,marginBottom:6}}>no sets right now</div>
+              <div style={{fontSize:12,fontStyle:'italic',color:'rgba(255,255,255,.2)'}}>probably a good time to hydrate</div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div style={{padding:'0 20px'}}>
+        {/* Also playing */}
+        {others.length>0&&(
+          <div style={{marginBottom:18}}>
+            <div className="section-label">Also Playing Now</div>
+            <div style={{display:'flex',gap:8,overflowX:'auto',paddingBottom:4,marginRight:-20,paddingRight:20}}>
+              {others.map(s=>{
+                const sc=SC[s.stage];
+                const isSel=sel.includes(s.id);
+                const isFriend=shared&&shared.includes(s.id);
+                return(
+                  <div key={s.id} style={{flexShrink:0,width:114,background:'rgba(255,255,255,.04)',border:`1px solid ${sc.p}22`,borderRadius:14,padding:'11px 12px',borderTop:`2px solid ${sc.p}`}}>
+                    <img src={IC(`stage-identity/icon-only/stage-${sc.key}-icon.webp`)} alt="" className="icon-img" style={{width:24,height:24,marginBottom:6,mixBlendMode:'screen'}}/>
+                    <ArtistName name={s.artist} size={9.5} weight={700}/>
+                    <div className="mono" style={{fontSize:8.5,color:'rgba(255,255,255,.28)',marginTop:5}}>{fmtT(s.s)}</div>
+                    {(isSel||isFriend)&&<div style={{marginTop:5,width:6,height:6,borderRadius:'50%',background:isSel?sc.p:`${sc.p}66`,boxShadow:isSel?`0 0 6px ${sc.p}`:'none'}}/>}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Up next */}
+        {myNext&&(
+          <div className="card" style={{padding:'16px 18px',marginBottom:16}}>
+            <div className="section-label">Up Next · Your Schedule</div>
+            <div style={{display:'flex',alignItems:'center',gap:12,justifyContent:'space-between'}}>
+              <div style={{flex:1,minWidth:0}}>
+                <ArtistName name={myNext.artist} size={18} weight={800}/>
+                <div style={{display:'flex',alignItems:'center',gap:8,marginTop:5}}>
+                  <img src={IC(`stage-identity/lockups/stage-${SC[myNext.stage].key}-lockup.webp`)} alt="" className="icon-img" style={{height:13,mixBlendMode:'screen',opacity:.7}}/>
+                  <div className="mono" style={{fontSize:11,color:'rgba(255,255,255,.4)'}}>{fmtT(myNext.s)}</div>
+                </div>
+              </div>
+              {leaveBy&&(
+                <div style={{textAlign:'center',background:`${SC.kineticFIELD.p}14`,borderRadius:12,padding:'10px 14px',border:`1px solid ${SC.kineticFIELD.p}22`,flexShrink:0}}>
+                  <div className="sora" style={{fontWeight:800,fontSize:22,color:'#fc3cbf',lineHeight:1}}>{leaveBy}</div>
+                  <div style={{fontSize:8.5,color:'rgba(255,255,255,.28)',letterSpacing:'.1em',textTransform:'uppercase',marginTop:4}}>leave by</div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Coming up */}
+        {SCHEDULE.filter(s=>s.day===day&&STAGES.includes(s.stage)&&toM(s.s)>festMin&&!sel.includes(s.id)).sort((a,b)=>toM(a.s)-toM(b.s)).slice(0,4).map(s=>{
+          const sc=SC[s.stage];
+          return(
+            <div key={s.id} style={{display:'flex',alignItems:'center',gap:10,padding:'9px 0',borderBottom:'1px solid rgba(255,255,255,.04)'}}>
+              <div style={{width:3,height:28,borderRadius:2,background:sc.p,opacity:.4,flexShrink:0}}/>
+              <img src={IC(`stage-identity/icon-only/stage-${sc.key}-icon.webp`)} alt="" className="icon-img" style={{width:20,height:20,opacity:.6,mixBlendMode:'screen'}}/>
+              <div style={{flex:1,minWidth:0}}>
+                <ArtistName name={s.artist} size={12} weight={600}/>
+              </div>
+              <div className="mono" style={{fontSize:10,color:'rgba(255,255,255,.25)',flexShrink:0}}>{fmtT(s.s)}</div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function HomeInter({nextDay,nextStart,now}){
+  const d=Math.max(0,nextStart-now);
+  const h=Math.floor(d/3600000),m=Math.floor((d%3600000)/60000),s=Math.floor((d%60000)/1000);
+  const pad=n=>String(n).padStart(2,'0');
+  return(
+    <div className="screen" style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',paddingBottom:88,paddingTop:60}}>
+      <ScreenHeader img="header-home.webp" height={200}/>
+      <div style={{padding:'32px 20px',textAlign:'center'}}>
+        <div className="section-label" style={{marginBottom:16}}>{'Saturday Sunday'.split(' ')[nextDay-2]} Starts In</div>
+        <div style={{display:'flex',gap:12,justifyContent:'center'}}>
+          {[{v:pad(h),l:'HRS'},{v:pad(m),l:'MIN'},{v:pad(s),l:'SEC'}].map(({v,l})=>(
+            <div key={l} style={{textAlign:'center'}}>
+              <div className="sora" style={{fontWeight:800,fontSize:44,color:'#fc3cbf',textShadow:'0 0 24px #fc3cbf'}}>{v}</div>
+              <div style={{fontSize:9,color:'rgba(255,255,255,.2)',letterSpacing:'.14em',marginTop:4}}>{l}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{fontSize:12,color:'rgba(255,255,255,.22)',marginTop:20,fontStyle:'italic'}}>you're probably exactly where you need to be</div>
+      </div>
+    </div>
+  );
+}
+
+function HomePost({sel}){
+  return(
+    <div className="screen" style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',paddingBottom:88}}>
+      <div style={{textAlign:'center',padding:'80px 32px'}}>
+        <img src={W('edc-logo.webp')} alt="EDC" style={{height:48,margin:'0 auto 20px',opacity:.3,mixBlendMode:'screen'}}/>
+        <div className="sora" style={{fontWeight:800,fontSize:20,marginBottom:8,color:'rgba(255,255,255,.6)'}}>see you next year</div>
+        <div style={{fontSize:13,color:'rgba(255,255,255,.25)'}}>EDC Las Vegas 2026 · {sel.length} sets caught</div>
+        <div style={{fontSize:12,color:'rgba(255,255,255,.15)',marginTop:8,fontStyle:'italic'}}>proof it happened. allegedly.</div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── SCHEDULE ───────────────────────────────────────────────── */
+function ScheduleScreen({sel,toggle,recon,shared}){
+  const[view,setView]=useState('byday');
+  const[day,setDay]=useState(1);
+  const[q,setQ]=useState('');
+  const[showExport,setShowExport]=useState(false);
+  const now=useClock();
+  const phase=getPhase(now);
+  const nowDay=phase.phase==='live'?phase.day:null;
+
+  const sets=useMemo(()=>{
+    let s=SCHEDULE.filter(x=>STAGES.includes(x.stage));
+    if(q.trim()){const r=q.toLowerCase();s=s.filter(x=>x.artist.toLowerCase().includes(r)||SC[x.stage]?.label.toLowerCase().includes(r));}
+    if(view==='alpha')return[...s].sort((a,b)=>a.artist.localeCompare(b.artist));
+    if(view==='grid')return s.filter(x=>x.day===day);
+    return s.filter(x=>x.day===day).sort((a,b)=>toM(a.s)-toM(b.s));
+  },[q,view,day]);
+
+  if(showExport)return<ExportScreen sel={sel} recon={recon} shared={shared} onBack={()=>setShowExport(false)}/>;
+  if(view==='grid')return<GridScreen day={day} setDay={setDay} nowDay={nowDay} sel={sel} toggle={toggle} recon={recon} shared={shared} onBack={()=>setView('byday')} onExport={()=>setShowExport(true)}/>;
+
+  return(
+    <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
+      <ScreenHeader img="header-schedule.webp" height={150}>
+        <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between'}}>
+          <div>
+            <div className="sora" style={{fontWeight:800,fontSize:22,letterSpacing:'.03em',lineHeight:1}}>SCHEDULE</div>
+            <div style={{fontSize:12,color:'rgba(255,255,255,.3)',marginTop:3,fontStyle:'italic'}}>chart your night. adjust as needed.</div>
+          </div>
+          <button onClick={()=>setShowExport(true)} style={{display:'flex',alignItems:'center',gap:6,padding:'8px 14px',borderRadius:10,background:'rgba(252,60,191,.12)',border:'1px solid rgba(252,60,191,.3)',color:'#fc3cbf',fontWeight:600,fontSize:11}}>
+            <img src={IC('status-action/action-download.webp')} alt="" className="icon-img" style={{width:14,height:14}}/>
+            Export
+          </button>
+        </div>
+      </ScreenHeader>
+
+      {/* Controls */}
+      <div style={{background:'rgba(8,12,24,.97)',backdropFilter:'blur(20px)',borderBottom:'1px solid rgba(255,255,255,.06)',flexShrink:0,padding:'10px 20px'}}>
+        {/* Search */}
+        <div style={{position:'relative',marginBottom:10}}>
+          <img src={IC('status-action/action-search.webp')} alt="" className="icon-img" style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',width:16,height:16,opacity:.35}}/>
+          <input value={q} onChange={e=>setQ(e.target.value)} placeholder="search artists, stages…" className="input" style={{paddingLeft:38}}/>
+          {q&&<button onClick={()=>setQ('')} style={{position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',fontSize:18,opacity:.35,padding:'0 4px'}}>×</button>}
+        </div>
+        {/* View tabs */}
+        <div style={{display:'flex',gap:0,borderBottom:'1px solid rgba(255,255,255,.06)',marginBottom:0}}>
+          {[['alpha','A–Z'],['byday','By Day'],['grid','Grid']].map(([v,l])=>(
+            <button key={v} onClick={()=>setView(v)} style={{
+              padding:'8px 14px',fontWeight:500,fontSize:11,letterSpacing:'.07em',textTransform:'uppercase',
+              color:view===v?'#fff':'rgba(255,255,255,.28)',
+              borderBottom:view===v?`2px solid #fc3cbf`:'2px solid transparent',
+              transition:'all .15s',
+            }}>{l}</button>
+          ))}
+          {sel.length>0&&<div style={{marginLeft:'auto',display:'flex',alignItems:'center',padding:'0 4px'}}>
+            <span style={{fontSize:10,color:'#fc3cbf',fontWeight:600,background:'rgba(252,60,191,.1)',borderRadius:8,padding:'2px 8px'}}>{sel.length}</span>
+          </div>}
+        </div>
+        {/* Day picker */}
+        {view!=='alpha'&&(
+          <div style={{display:'flex',gap:6,paddingTop:10}}>
+            {[['Fri',1],['Sat',2],['Sun',3]].map(([l,d])=>{
+              const act=day===d;
+              return(
+                <button key={d} onClick={()=>setDay(d)} className={act?'pill pill-active':'pill pill-inactive'} style={{position:'relative'}}>
+                  {l}
+                  {nowDay===d&&<span style={{position:'absolute',top:-2,right:-2,width:7,height:7,borderRadius:'50%',background:'#ff2d78',boxShadow:'0 0 6px #ff2d78'}}/>}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Stage legend */}
+      {view==='byday'&&(
+        <div style={{background:'rgba(8,12,24,.97)',padding:'8px 20px 8px',display:'flex',gap:5,overflowX:'auto',flexShrink:0}}>
+          {STAGES.map(sg=>{
+            const sc=SC[sg];
+            return(
+              <div key={sg} style={{flexShrink:0,display:'flex',alignItems:'center',gap:4,padding:'3px 8px',borderRadius:20,border:`1px solid ${sc.p}44`,background:`${sc.p}0e`}}>
+                <img src={IC(`stage-identity/icon-only/stage-${sc.key}-icon.webp`)} alt="" className="icon-img" style={{width:14,height:14,mixBlendMode:'screen'}}/>
+                <span style={{fontSize:8.5,color:sc.p,fontWeight:700}}>{sc.short}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Set list */}
+      <div className="screen" style={{padding:'8px 20px 104px'}}>
+        {sets.length===0&&<div style={{textAlign:'center',padding:'48px 0',color:'rgba(255,255,255,.18)',fontSize:13}}>{q?'no artists found':'nothing here yet'}</div>}
+        {sets.map(s=><SetCard key={s.id} set={s} sel={sel} onToggle={toggle} recon={recon} shared={shared}/>)}
+      </div>
+    </div>
+  );
+}
+
+/* ─── GRID ───────────────────────────────────────────────────── */
+function GridScreen({day,setDay,nowDay,sel,toggle,recon,shared,onBack,onExport}){
+  const now=useClock();
+  const phase=getPhase(now);
+  const PPM=1.5,LCOL=38,CCOL=86,FSTART=17*60;
+  const hours=Array.from({length:13},((_,i)=>17+i));
+  const daySets=useMemo(()=>SCHEDULE.filter(s=>s.day===day&&STAGES.includes(s.stage)),[day]);
+  let nowLine=null;
+  if(phase.phase==='live'&&phase.day===day){
+    const elapsed=(now-phase.dayStart.getTime())/60000;
+    nowLine=(FSTART+elapsed-FSTART)*PPM;
+  }
+  const totalH=(30*60-FSTART)*PPM;
+
+  return(
+    <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
+      <ScreenHeader img="header-grid.webp" height={140}>
+        <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between'}}>
+          <div>
+            <div className="sora" style={{fontWeight:800,fontSize:20}}>GRID</div>
+            <div style={{fontSize:11,color:'rgba(255,255,255,.3)',fontStyle:'italic'}}>the full picture. while you can still read it.</div>
+          </div>
+          <div style={{display:'flex',gap:6}}>
+            <button onClick={onBack} style={{padding:'5px 10px',borderRadius:8,background:'rgba(255,255,255,.07)',color:'rgba(255,255,255,.4)',fontSize:11}}>← List</button>
+            <button onClick={onExport} style={{display:'flex',alignItems:'center',gap:5,padding:'5px 10px',borderRadius:8,background:'rgba(252,60,191,.12)',border:'1px solid rgba(252,60,191,.25)',color:'#fc3cbf',fontSize:11}}>
+              <img src={IC('status-action/action-download.webp')} alt="" className="icon-img" style={{width:12,height:12}}/>
+              Export
+            </button>
+          </div>
+        </div>
+      </ScreenHeader>
+      {/* Day + Stage headers */}
+      <div style={{background:'rgba(8,12,24,.97)',backdropFilter:'blur(20px)',flexShrink:0,borderBottom:'1px solid rgba(255,255,255,.06)'}}>
+        <div style={{display:'flex',gap:5,padding:'8px 14px'}}>
+          {[['Fri',1],['Sat',2],['Sun',3]].map(([l,d])=>(
+            <button key={d} onClick={()=>setDay(d)} className={day===d?'pill pill-active':'pill pill-inactive'} style={{position:'relative'}}>
+              {l}{nowDay===d&&<span style={{position:'absolute',top:-2,right:-2,width:7,height:7,borderRadius:'50%',background:'#ff2d78',boxShadow:'0 0 6px #ff2d78'}}/>}
+            </button>
+          ))}
+        </div>
+        <div style={{display:'flex',paddingLeft:LCOL,overflowX:'auto'}}>
+          {STAGES.map(sg=>{
+            const sc=SC[sg];
+            return(
+              <div key={sg} style={{width:CCOL,flexShrink:0,textAlign:'center',padding:'6px 2px 8px',borderBottom:`2px solid ${sc.p}`}}>
+                <img src={IC(`stage-identity/icon-only/stage-${sc.key}-icon.webp`)} alt={sc.label} className="icon-img" style={{width:28,height:28,margin:'0 auto',mixBlendMode:'screen'}}/>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      {/* Grid body */}
+      <div style={{flex:1,overflowX:'auto',overflowY:'auto'}}>
+        <div style={{minWidth:LCOL+STAGES.length*CCOL,position:'relative',height:totalH+40}}>
+          {hours.map(h=>(
+            <div key={h} style={{position:'absolute',top:(h*60-FSTART)*PPM,left:0,right:0,display:'flex',alignItems:'center',zIndex:5,pointerEvents:'none'}}>
+              <div className="mono" style={{width:LCOL,fontSize:7,color:'rgba(255,255,255,.16)',textAlign:'right',paddingRight:5,flexShrink:0}}>
+                {h===24?'12A':h<24?h+':00':(h-24)+':00'}
+              </div>
+              <div style={{flex:1,height:1,background:'rgba(255,255,255,.04)'}}/>
+            </div>
+          ))}
+          {nowLine!==null&&(
+            <div style={{position:'absolute',top:nowLine,left:0,right:0,zIndex:20,display:'flex',alignItems:'center',pointerEvents:'none'}}>
+              <div className="mono" style={{width:LCOL,textAlign:'right',paddingRight:4,fontSize:7,color:'#ff2d78',flexShrink:0}}>NOW</div>
+              <div style={{flex:1,height:1.5,background:'#ff2d78',boxShadow:'0 0 8px #ff2d78'}}/>
+            </div>
+          )}
+          {daySets.map(s=>{
+            const si=STAGES.indexOf(s.stage);if(si<0)return null;
+            const sc=SC[s.stage];
+            const isSel=sel.includes(s.id);
+            const isShared=shared&&shared.includes(s.id);
+            const rec=recon[s.id]||s;
+            const top=(toM(s.s)-FSTART)*PPM;
+            const ht=Math.max((toM(s.e)-toM(s.s))*PPM,20);
+            return(
+              <div key={s.id} onClick={()=>toggle(s.id)} style={{
+                position:'absolute',top,height:ht,
+                left:LCOL+si*CCOL+2,width:CCOL-4,
+                background:isSel?`${sc.p}2e`:`${sc.p}0d`,
+                border:`1px solid ${isSel?sc.p+'66':sc.p+'1e'}`,
+                borderTop:`2px solid ${isSel?sc.p:sc.p+'44'}`,
+                borderRadius:6,padding:'3px 5px',overflow:'hidden',cursor:'pointer',
+                boxShadow:isSel?`0 0 16px ${sc.p}55`:'none',
+                transition:'all .15s',
+              }}>
+                <div className="sora" style={{fontWeight:700,fontSize:7,color:isSel?'#fff':'rgba(255,255,255,.5)',lineHeight:1.25,overflow:'hidden'}}>
+                  {s.artist.includes(' B2B ')
+                    ? s.artist.split(' B2B ').map((p,i,arr)=><span key={i}>{p}{i<arr.length-1&&<span style={{fontSize:6,opacity:.55}}> B2B</span>}<br/></span>)
+                    : (s.artist.length>16?s.artist.slice(0,14)+'…':s.artist)
+                  }
+                </div>
+                {ht>36&&isSel&&<div className="mono" style={{fontSize:5.5,color:sc.s,marginTop:2,opacity:.9}}>{fmtT(rec.cs)}–{fmtT(rec.ce)}</div>}
+                {isShared&&!isSel&&<div style={{position:'absolute',top:3,right:3,width:5,height:5,borderRadius:'50%',background:sc.p,opacity:.6}}/>}
+                {rec.conflict&&<img src={IC('status-action/action-alert.webp')} alt="!" className="icon-img" style={{position:'absolute',bottom:2,right:2,width:8,height:8}}/>}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── EXPORT ─────────────────────────────────────────────────── */
+function ExportScreen({sel,recon,shared,onBack}){
+  const[stage,setStage]=useState('kineticFIELD');
+  const[ratio,setRatio]=useState('9:16');
+  const[day,setDay]=useState(1);
+  const[busy,setBusy]=useState(false);
+  const canvasRef=useRef();
+  const sc=SC[stage];
+
+  const selSets=useMemo(()=>SCHEDULE.filter(s=>sel.includes(s.id)&&s.day===day&&STAGES.includes(s.stage)).sort((a,b)=>toM(a.s)-toM(b.s)).filter(s=>{const r=recon[s.id]||s;return toM(r.ce)>toM(r.cs);}),[sel,day,recon]);
+
+  const RATIOS={'9:16':[1080,1920],'4:5':[1080,1350],'1:1':[1080,1080],'19.5:9':[1920,882]};
+
+  async function doExport(){
+    setBusy(true);
+    try{
+      await document.fonts.ready;
+      const[W,H]=RATIOS[ratio]||[1080,1920];
+      const cv=canvasRef.current; cv.width=W; cv.height=H;
+      const ctx=cv.getContext('2d');
+      const bg=new Image(); bg.crossOrigin='anonymous';
+      await new Promise(r=>{bg.onload=r;bg.onerror=r;bg.src=W(`${sc.key}-backdrop.webp`);});
+      ctx.fillStyle='#080c18'; ctx.fillRect(0,0,W,H);
+      if(bg.naturalWidth){
+        const bsc=Math.max(W/bg.naturalWidth,H/bg.naturalHeight);
+        ctx.globalAlpha=.5; ctx.globalCompositeOperation='screen';
+        ctx.drawImage(bg,(W-bg.naturalWidth*bsc)/2,(H-bg.naturalHeight*bsc)/2,bg.naturalWidth*bsc,bg.naturalHeight*bsc);
+        ctx.globalCompositeOperation='source-over'; ctx.globalAlpha=1;
+      }
+      const g=ctx.createLinearGradient(0,0,0,H);
+      g.addColorStop(0,'rgba(8,12,24,.78)'); g.addColorStop(.4,'rgba(8,12,24,.2)'); g.addColorStop(.7,'rgba(8,12,24,.5)'); g.addColorStop(1,'rgba(8,12,24,.92)');
+      ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+      const rg=ctx.createRadialGradient(W/2,H*.08,0,W/2,H*.08,W*.7);
+      rg.addColorStop(0,sc.p+'28'); rg.addColorStop(1,'transparent');
+      ctx.fillStyle=rg; ctx.fillRect(0,0,W,H);
+      const pad=W*.06; let y=H*.08;
+      ctx.font=`800 ${W*.18}px Sora,sans-serif`; ctx.textAlign='center'; ctx.fillStyle='#fff';
+      ctx.shadowColor=sc.p; ctx.shadowBlur=W*.06;
+      ctx.fillText('edc',W/2,y+W*.13); ctx.shadowBlur=0; y+=W*.16;
+      ctx.font=`400 ${W*.028}px DM Sans,sans-serif`; ctx.fillStyle='rgba(255,255,255,.38)';
+      ctx.fillText(`LAS VEGAS 2026 · ${'FRIDAY SATURDAY SUNDAY'.split(' ')[day-1]}`,W/2,y); y+=W*.018;
+      ctx.beginPath(); const lg=ctx.createLinearGradient(pad,0,W-pad,0);
+      lg.addColorStop(0,'transparent'); lg.addColorStop(.5,sc.p+'aa'); lg.addColorStop(1,'transparent');
+      ctx.strokeStyle=lg; ctx.lineWidth=1.5; ctx.moveTo(pad,y+H*.012); ctx.lineTo(W-pad,y+H*.012); ctx.stroke();
+      y+=H*.038;
+      const CH=H*.072,CG=H*.011;
+      for(const s of selSets){
+        if(y+CH>H*.93)break;
+        const stSc=SC[s.stage]; const rec=recon[s.id]||s;
+        const cx=pad,cy=y,cw=W-pad*2,ch=CH;
+        ctx.fillStyle=`${stSc.p}1e`; rRect(ctx,cx,cy,cw,ch,W*.018); ctx.fill();
+        ctx.fillStyle=stSc.p; ctx.shadowColor=stSc.p; ctx.shadowBlur=W*.02;
+        rRect(ctx,cx,cy,W*.011,ch,W*.004); ctx.fill(); ctx.shadowBlur=0;
+        const parts=s.artist.split(' B2B ');
+        ctx.font=`700 ${W*.034}px Sora,sans-serif`; ctx.fillStyle='#fff'; ctx.textAlign='left';
+        let ty=cy+ch*.4;
+        if(parts.length>1){
+          ctx.font=`700 ${W*.028}px Sora,sans-serif`;
+          parts.forEach((p,i)=>{
+            if(i<parts.length-1){ctx.fillStyle='#fff';ctx.fillText(p,cx+W*.022,ty);ctx.fillStyle='rgba(255,255,255,.35)';ctx.font=`400 ${W*.022}px Sora,sans-serif`;ctx.fillText(' B2B',cx+W*.022+ctx.measureText(p).width,ty);ctx.font=`700 ${W*.028}px Sora,sans-serif`;}
+            else{ctx.fillStyle='#fff';ctx.fillText(p,cx+W*.022,ty);}
+            ty+=W*.036;
+          });
+          ty-=W*.016;
+        } else {
+          let txt=s.artist;
+          while(ctx.measureText(txt).width>cw*.7&&txt.length>4)txt=txt.slice(0,-1);
+          if(txt!==s.artist)txt+='…';
+          ctx.fillText(txt,cx+W*.022,cy+ch*.45);
+          ty=cy+ch*.45;
+        }
+        ctx.font=`400 ${W*.022}px Space Mono,monospace`; ctx.fillStyle='rgba(255,255,255,.25)'; ctx.textAlign='right';
+        ctx.fillText(`${fmtT(s.s)}–${fmtT(s.e)}`,cx+cw-W*.018,cy+ch*.4);
+        ctx.font=`700 ${W*.024}px Space Mono,monospace`; ctx.fillStyle=stSc.s;
+        ctx.fillText(`CATCH ${fmtT(rec.cs)}–${fmtT(rec.ce)}`,cx+cw-W*.018,cy+ch*.75);
+        y+=CH+CG;
+      }
+      if(!selSets.length){
+        ctx.font=`400 ${W*.038}px DM Sans,sans-serif`; ctx.fillStyle='rgba(255,255,255,.22)'; ctx.textAlign='center';
+        ctx.fillText('no sets selected for this day',W/2,H/2);
+      }
+      ctx.font=`400 ${W*.02}px Space Mono,monospace`; ctx.fillStyle='rgba(255,255,255,.18)'; ctx.textAlign='center';
+      ctx.fillText('MY EDC LV 2026 · proof it happened.',W/2,H*.967);
+      cv.toBlob(blob=>{
+        const url=URL.createObjectURL(blob);
+        const fn=`edc-2026-${'fri sat sun'.split(' ')[day-1]}.png`;
+        if(navigator.share&&navigator.canShare?.({files:[new File([blob],fn,{type:'image/png'})]})){
+          navigator.share({files:[new File([blob],fn,{type:'image/png'})],title:'My EDC 2026 Schedule'}).catch(()=>{});
+        } else {
+          const a=document.createElement('a'); a.href=url; a.download=fn; a.click();
+        }
+        setTimeout(()=>URL.revokeObjectURL(url),10000);
+        setBusy(false);
+      },'image/png');
+    }catch(e){console.error(e);setBusy(false);}
+  }
+
+  return(
+    <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
+      <ScreenHeader img="header-export.webp" height={140}>
+        <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between'}}>
+          <div>
+            <div className="sora" style={{fontWeight:800,fontSize:20}}>EXPORT</div>
+            <div style={{fontSize:11,color:'rgba(255,255,255,.3)',fontStyle:'italic'}}>proof it happened.</div>
+          </div>
+          <button onClick={onBack} style={{padding:'6px 12px',borderRadius:8,background:'rgba(255,255,255,.07)',color:'rgba(255,255,255,.4)',fontSize:11}}>← Back</button>
+        </div>
+      </ScreenHeader>
+      <canvas ref={canvasRef} style={{display:'none'}}/>
+      <div className="screen" style={{padding:'16px 20px 104px'}}>
+        {/* Day */}
+        <div style={{marginBottom:16}}>
+          <div className="section-label">Day</div>
+          <div style={{display:'flex',gap:6}}>
+            {[['Friday',1],['Saturday',2],['Sunday',3]].map(([l,d])=>(
+              <button key={d} onClick={()=>setDay(d)} className={day===d?'pill pill-active':'pill pill-inactive'}>{l}</button>
+            ))}
+          </div>
+        </div>
+        {/* Preview */}
+        <div style={{position:'relative',borderRadius:18,overflow:'hidden',marginBottom:16,border:`1px solid ${sc.p}33`,boxShadow:`0 0 40px ${sc.p}18`,aspectRatio:ratio==='9:16'?'9/16':ratio==='4:5'?'4/5':ratio==='1:1'?'1/1':'19.5/9'}}>
+          <img src={W(`${sc.key}-backdrop.webp`)} alt="" style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',mixBlendMode:'screen',opacity:.5}}/>
+          <div style={{position:'absolute',inset:0,background:'linear-gradient(180deg,rgba(8,12,24,.7) 0%,rgba(8,12,24,.2) 40%,rgba(8,12,24,.8) 100%)'}}/>
+          <div style={{position:'relative',zIndex:2,padding:'14px'}}>
+            <div style={{textAlign:'center',marginBottom:10}}>
+              <div className="sora" style={{fontWeight:800,fontSize:34,color:sc.p,textShadow:`0 0 20px ${sc.p}`,lineHeight:1}}>edc</div>
+              <div style={{fontSize:8,color:'rgba(255,255,255,.4)',letterSpacing:'.2em',marginTop:2}}>LAS VEGAS 2026 · {'FRI SAT SUN'.split(' ')[day-1]}</div>
+              <div style={{height:1,background:`linear-gradient(90deg,transparent,${sc.p}88,transparent)`,marginTop:7}}/>
+            </div>
+            {selSets.length===0&&<div style={{textAlign:'center',padding:'16px 0',color:'rgba(255,255,255,.2)',fontSize:11}}>no sets for {'Friday Saturday Sunday'.split(' ')[day-1]}</div>}
+            {selSets.map(s=>{
+              const stSc=SC[s.stage]; const rec=recon[s.id]||s;
+              return(
+                <div key={s.id} style={{display:'flex',gap:8,marginBottom:5,background:'rgba(0,0,0,.55)',borderRadius:8,padding:'6px 9px',borderLeft:`3px solid ${stSc.p}`}}>
+                  <div style={{flex:1,minWidth:0}}>
+                    <ArtistName name={s.artist} size={9.5} weight={700}/>
+                    <img src={IC(`stage-identity/lockups/stage-${stSc.key}-lockup.webp`)} alt="" className="icon-img" style={{height:10,marginTop:2,mixBlendMode:'screen',opacity:.7}}/>
+                  </div>
+                  <div style={{textAlign:'right',flexShrink:0}}>
+                    <div className="mono" style={{fontSize:7,color:'rgba(255,255,255,.28)'}}>{fmtT(s.s)}–{fmtT(s.e)}</div>
+                    <div className="mono" style={{fontSize:8,color:stSc.s,fontWeight:700}}>CATCH {fmtT(rec.cs)}–{fmtT(rec.ce)}</div>
+                  </div>
+                </div>
+              );
+            })}
+            <div style={{textAlign:'center',marginTop:8,fontSize:7,color:'rgba(255,255,255,.16)',letterSpacing:'.1em'}}>MY EDC LV 2026 SCHEDULE</div>
+          </div>
+        </div>
+        {/* Stage picker */}
+        <div style={{marginBottom:14}}>
+          <div className="section-label">Stage Backdrop</div>
+          <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+            {STAGES.map(sg=>{
+              const sv=SC[sg]; const act=stage===sg;
+              return(
+                <button key={sg} onClick={()=>setStage(sg)} style={{
+                  display:'flex',alignItems:'center',gap:5,padding:'6px 10px',borderRadius:10,
+                  border:`1px solid ${act?sv.p:sv.p+'33'}`,background:act?`${sv.p}22`:'rgba(255,255,255,.03)',
+                  boxShadow:act?`0 0 10px ${sv.p}44`:'none',transition:'all .15s',
+                }}>
+                  <img src={IC(`stage-identity/icon-only/stage-${sv.key}-icon.webp`)} alt="" className="icon-img" style={{width:16,height:16,mixBlendMode:'screen'}}/>
+                  <span style={{fontSize:9,fontWeight:600,color:act?sv.p:'rgba(255,255,255,.35)'}}>{sv.short}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        {/* Ratio */}
+        <div style={{marginBottom:20}}>
+          <div className="section-label">Ratio</div>
+          <div style={{display:'flex',gap:6}}>
+            {['9:16','4:5','1:1','19.5:9'].map(r=>(
+              <button key={r} onClick={()=>setRatio(r)} className="mono" style={{
+                padding:'7px 12px',borderRadius:9,fontSize:10,transition:'all .15s',
+                border:`1px solid ${ratio===r?'rgba(255,255,255,.25)':'rgba(255,255,255,.08)'}`,
+                background:ratio===r?'rgba(255,255,255,.1)':'rgba(255,255,255,.03)',
+                color:ratio===r?'#fff':'rgba(255,255,255,.3)',
+              }}>{r}</button>
+            ))}
+          </div>
+        </div>
+        {/* Share link */}
+        <div className="card" style={{padding:'12px 16px',marginBottom:16,display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
+          <div>
+            <div style={{fontWeight:600,fontSize:12,marginBottom:2}}>Share My Lineup</div>
+            <div style={{fontSize:10,color:'rgba(255,255,255,.3)'}}>your picks, encoded in the link</div>
+          </div>
+          <button onClick={()=>{
+            const url=location.origin+location.pathname+encShare(sel);
+            navigator.share?navigator.share({url,title:'My EDC 2026 lineup'}).catch(()=>{}):navigator.clipboard.writeText(url).then(()=>alert('Copied!')).catch(()=>{});
+          }} style={{
+            display:'flex',alignItems:'center',gap:6,padding:'8px 14px',borderRadius:10,
+            background:'rgba(252,60,191,.1)',border:'1px solid rgba(252,60,191,.3)',
+            color:'#fc3cbf',fontWeight:600,fontSize:11,flexShrink:0,
+          }}>
+            <img src={IC('status-action/action-share.webp')} alt="" className="icon-img" style={{width:14,height:14}}/>
+            Share
+          </button>
+        </div>
+        <button onClick={doExport} disabled={busy} style={{
+          width:'100%',padding:'17px',borderRadius:14,
+          background:busy?'rgba(255,255,255,.05)':`linear-gradient(135deg,${sc.p},${sc.s})`,
+          color:busy?'rgba(255,255,255,.3)':'#fff',
+          fontFamily:'Sora,sans-serif',fontWeight:700,fontSize:14,letterSpacing:'.08em',
+          boxShadow:busy?'none':`0 8px 36px ${sc.p}44`,
+          display:'flex',alignItems:'center',justifyContent:'center',gap:10,
+          transition:'all .2s',
+        }}>
+          {busy?<><span className="spin" style={{display:'inline-block',fontSize:18}}>⟳</span>Rendering…</>:<><img src={IC('status-action/action-download.webp')} alt="" className="icon-img" style={{width:18,height:18}}/>SAVE WALLPAPER</>}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function rRect(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();}
+
+/* ─── MAP ────────────────────────────────────────────────────── */
+const PIN_TYPES=[
+  {id:'meetup',label:'Meet Up',icon:'utility-meet-up-point.webp'},
+  {id:'totem', label:'Totem',  icon:'utility-totem.webp'},
+  {id:'water',  label:'Water',  icon:'utility-water.webp'},
+  {id:'aid',    label:'First Aid',icon:'utility-first-aid.webp'},
+  {id:'stage',  label:'Stage',  icon:'utility-stage.webp'},
+  {id:'charge', label:'Charging',icon:'utility-charging.webp'},
+];
+
+function MapScreen({pins,setPins,crew}){
+  const[zoom,setZoom]=useState(1);
+  const[pan,setPan]=useState({x:0,y:0});
+  const[sel,setSel]=useState(null);
+  const[addMode,setAddMode]=useState(false);
+  const[form,setForm]=useState({label:'',time:'',type:'meetup',crewId:'',color:'#14c4ed'});
+  const tr=useRef({});
+
+  function onTS(e){
+    if(e.touches.length===2){tr.current={pinch:true,d0:Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY),z0:zoom};}
+    else if(e.touches.length===1){tr.current={drag:true,x0:e.touches[0].clientX-pan.x,y0:e.touches[0].clientY-pan.y};}
+  }
+  function onTM(e){
+    if(tr.current.pinch&&e.touches.length===2){const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);setZoom(z=>Math.min(4,Math.max(.5,tr.current.z0*d/tr.current.d0)));}
+    else if(tr.current.drag&&e.touches.length===1&&zoom>1){setPan({x:e.touches[0].clientX-tr.current.x0,y:e.touches[0].clientY-tr.current.y0});}
+  }
+  function onTE(){tr.current={};}
+
+  function handleTap(e){
+    if(!addMode)return;
+    const r=e.currentTarget.getBoundingClientRect();
+    const x=parseFloat(((e.clientX-r.left)/r.width*100).toFixed(1));
+    const y=parseFloat(((e.clientY-r.top)/r.height*100).toFixed(1));
+    setPins(p=>[...p,{id:Date.now(),x,y,...form}]);
+    setAddMode(false);
+    setForm({label:'',time:'',type:'meetup',crewId:'',color:'#14c4ed'});
+  }
+
+  return(
+    <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
+      <ScreenHeader img="header-map.webp" height={140}>
+        <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between'}}>
+          <div>
+            <div className="sora" style={{fontWeight:800,fontSize:20}}>MAP</div>
+            <div style={{fontSize:11,color:'rgba(255,255,255,.3)',fontStyle:'italic'}}>find your way. eventually.</div>
+          </div>
+          <div style={{display:'flex',gap:8}}>
+            {zoom>1&&<button onClick={()=>{setZoom(1);setPan({x:0,y:0});}} style={{padding:'6px 10px',borderRadius:8,background:'rgba(255,255,255,.08)',color:'rgba(255,255,255,.4)',fontSize:11}}>Reset</button>}
+            <button onClick={()=>setAddMode(!addMode)} style={{
+              display:'flex',alignItems:'center',gap:5,padding:'6px 12px',borderRadius:10,fontSize:11,fontWeight:600,
+              border:`1px solid ${addMode?'#fc3cbf':'rgba(255,255,255,.12)'}`,
+              background:addMode?'rgba(252,60,191,.15)':'rgba(255,255,255,.05)',
+              color:addMode?'#fc3cbf':'rgba(255,255,255,.5)',
+            }}>
+              <img src={IC(addMode?'status-action/action-delete.webp':'status-action/action-add.webp')} alt="" className="icon-img" style={{width:14,height:14}}/>
+              {addMode?'Cancel':'Pin'}
+            </button>
+          </div>
+        </div>
+      </ScreenHeader>
+
+      {/* Add pin form */}
+      {addMode&&(
+        <div style={{flexShrink:0,background:'rgba(13,18,37,.97)',padding:'12px 16px',borderBottom:'1px solid rgba(255,255,255,.06)'}}>
+          <div style={{display:'flex',gap:8,marginBottom:8}}>
+            <input value={form.label} onChange={e=>setForm(f=>({...f,label:e.target.value}))} placeholder="Label (e.g. MEET HERE)" className="input" style={{flex:2}}/>
+            <input value={form.time} onChange={e=>setForm(f=>({...f,time:e.target.value}))} placeholder="Time" className="input" style={{flex:1}}/>
+          </div>
+          <div style={{display:'flex',gap:6,overflowX:'auto',paddingBottom:4}}>
+            {PIN_TYPES.map(pt=>(
+              <button key={pt.id} onClick={()=>setForm(f=>({...f,type:pt.id}))} style={{
+                flexShrink:0,display:'flex',alignItems:'center',gap:5,padding:'5px 9px',borderRadius:8,fontSize:10,
+                background:form.type===pt.id?'rgba(20,196,237,.15)':'rgba(255,255,255,.04)',
+                border:`1px solid ${form.type===pt.id?'rgba(20,196,237,.4)':'rgba(255,255,255,.08)'}`,
+                color:form.type===pt.id?'#14c4ed':'rgba(255,255,255,.4)',fontWeight:form.type===pt.id?600:400,
+              }}>
+                <img src={IC(`festival-utility/${pt.icon}`)} alt="" className="icon-img" style={{width:14,height:14}}/>
+                {pt.label}
+              </button>
+            ))}
+          </div>
+          <div style={{fontSize:10,color:'#fc3cbf',marginTop:8}}>tap anywhere on the map to place pin</div>
+        </div>
+      )}
+
+      {/* Map */}
+      <div style={{flex:1,position:'relative',overflow:'hidden',background:'#040410',cursor:addMode?'crosshair':'grab'}}
+        onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE} onClick={handleTap}>
+        <div style={{width:'100%',height:'100%',transform:`scale(${zoom}) translate(${pan.x/zoom}px,${pan.y/zoom}px)`,transformOrigin:'center',transition:'transform .05s',position:'relative'}}>
+          <img src="assets/map.webp" alt="EDC Map" onError={e=>{e.target.style.display='none';}} style={{width:'100%',height:'100%',objectFit:'contain'}}/>
+          {/* Map placeholder art */}
+          <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',opacity:.1,pointerEvents:'none',flexDirection:'column',gap:12}}>
+            <img src={IC('festival-utility/utility-stage.webp')} alt="" className="icon-img" style={{width:64,height:64}}/>
+            <div className="sora" style={{fontSize:13,letterSpacing:'.12em',color:'rgba(255,255,255,.6)'}}>MAP COMING SOON</div>
+            <div style={{fontSize:11,color:'rgba(255,255,255,.4)',textAlign:'center'}}>add assets/map.webp to your repo</div>
+          </div>
+          {/* Custom pins */}
+          {pins.map(p=>{
+            const pt=PIN_TYPES.find(x=>x.id===p.type)||PIN_TYPES[0];
+            return(
+              <div key={p.id} onClick={e=>{e.stopPropagation();setSel({type:'pin',pin:p});}} style={{
+                position:'absolute',left:`${p.x}%`,top:`${p.y}%`,transform:'translate(-50%,-100%)',cursor:'pointer',zIndex:15,
+              }}>
+                <div style={{background:p.color||'#14c4ed',borderRadius:'50%',width:28,height:28,display:'flex',alignItems:'center',justifyContent:'center',boxShadow:`0 0 12px ${p.color||'#14c4ed'}`,margin:'0 auto 2px'}}>
+                  <img src={IC(`festival-utility/${pt.icon}`)} alt="" className="icon-img" style={{width:16,height:16,filter:'invert(1)'}}/>
+                </div>
+                <div style={{fontSize:7,textAlign:'center',color:p.color||'#14c4ed',fontWeight:700,whiteSpace:'nowrap',textShadow:'0 1px 4px rgba(0,0,0,.9)'}}>{p.label}</div>
+              </div>
+            );
+          })}
+        </div>
+        {/* Zoom */}
+        <div style={{position:'absolute',right:12,top:12,display:'flex',flexDirection:'column',gap:6,zIndex:20}}>
+          {['+','−'].map(b=>(
+            <button key={b} onClick={()=>setZoom(z=>Math.min(4,Math.max(.5,z+(b==='+'?.35:-.35))))} style={{width:36,height:36,borderRadius:9,background:'rgba(8,12,24,.8)',backdropFilter:'blur(8px)',border:'1px solid rgba(255,255,255,.12)',color:'rgba(255,255,255,.6)',fontSize:20}}>{b}</button>
+          ))}
+        </div>
+        {/* Tooltip */}
+        {sel&&sel.type==='pin'&&(
+          <div style={{position:'absolute',bottom:12,left:12,right:60,background:'rgba(4,8,20,.95)',backdropFilter:'blur(16px)',borderRadius:14,padding:'12px 14px',zIndex:30,border:`1px solid ${sel.pin.color||'#14c4ed'}33`}}>
+            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4}}>
+              {(()=>{const pt=PIN_TYPES.find(x=>x.id===sel.pin.type)||PIN_TYPES[0];return<img src={IC(`festival-utility/${pt.icon}`)} alt="" className="icon-img" style={{width:18,height:18,opacity:.7}}/>;})()}
+              <div style={{fontWeight:700,fontSize:14,color:sel.pin.color||'#14c4ed'}}>{sel.pin.label}</div>
+            </div>
+            {sel.pin.time&&<div style={{fontSize:11,color:'rgba(255,255,255,.4)',marginBottom:2}}>⏱ {sel.pin.time}</div>}
+            {sel.pin.crewId&&(()=>{const c=crew.find(x=>x.id===sel.pin.crewId);return c?<div style={{fontSize:11,color:'rgba(255,255,255,.4)'}}>🪄 {c.name}</div>:null;})()}
+            <div style={{display:'flex',gap:8,marginTop:8}}>
+              <button onClick={()=>{setPins(p=>p.filter(x=>x.id!==sel.pin.id));setSel(null);}} style={{fontSize:11,color:'#ff5555',background:'rgba(255,85,85,.1)',border:'1px solid rgba(255,85,85,.2)',borderRadius:6,padding:'5px 10px',display:'flex',alignItems:'center',gap:5}}>
+                <img src={IC('status-action/action-delete.webp')} alt="" className="icon-img" style={{width:12,height:12}}/>Remove
+              </button>
+              <button onClick={()=>setSel(null)} style={{fontSize:11,color:'rgba(255,255,255,.4)',background:'rgba(255,255,255,.07)',borderRadius:6,padding:'5px 10px'}}>Close</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ─── CREW ───────────────────────────────────────────────────── */
+const KIT_ITEMS=[
+  {id:'wristband',label:'Wristband',icon:'kit-wristband.webp'},
+  {id:'id',label:'ID / 18+',icon:'kit-id.webp'},
+  {id:'cashless',label:'Cashless $',icon:'kit-cashless.webp'},
+  {id:'hydration',label:'Water Bottle',icon:'kit-hydration.webp'},
+  {id:'earplugs',label:'Earplugs',icon:'kit-earplugs.webp'},
+  {id:'charger',label:'Portable Charger',icon:'kit-portable-charger.webp'},
+  {id:'fan',label:'Handheld Fan',icon:'kit-fan.webp'},
+  {id:'lighttoy',label:'Light Toy',icon:'kit-light-toy.webp'},
+];
+
+function CrewScreen({crew,setCrew,markers,setMarkers}){
+  const[editCrew,setEditCrew]=useState(null);
+  const[editMarker,setEditMarker]=useState(null);
+  const[cf,setCf]=useState({name:'',origin:'',rep:'',findUs:'',photo:''});
+  const[mf,setMf]=useState({label:'',time:'',day:0,color:'#FFD700'});
+  const[kitChecked,setKitChecked]=useState(()=>LS.get('kit',[]));
+  useEffect(()=>{LS.set('kit',kitChecked);},[kitChecked]);
+
+  function saveCrew(){
+    if(!cf.name.trim())return;
+    if(editCrew==='new')setCrew(p=>[...p,{id:Date.now(),...cf}]);
+    else setCrew(p=>p.map(c=>c.id===editCrew?{...c,...cf}:c));
+    setEditCrew(null);
+  }
+  function saveMarker(){
+    if(!mf.label.trim())return;
+    if(editMarker==='new')setMarkers(p=>[...p,{id:Date.now(),...mf,timeDisp:mf.time}]);
+    else setMarkers(p=>p.map(m=>m.id===editMarker?{...m,...mf}:m));
+    setEditMarker(null);
+  }
+  function handlePhoto(e){
+    const f=e.target.files[0];if(!f)return;
+    const r=new FileReader();r.onload=ev=>setCf(c=>({...c,photo:ev.target.result}));r.readAsDataURL(f);
+  }
+  const toggleKit=id=>setKitChecked(p=>p.includes(id)?p.filter(x=>x!==id):[...p,id]);
+
+  return(
+    <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
+      <ScreenHeader img="header-crew.webp" height={150}>
+        <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between'}}>
+          <div>
+            <div className="sora" style={{fontWeight:800,fontSize:20}}>CREW</div>
+            <div style={{fontSize:11,color:'rgba(255,255,255,.3)',fontStyle:'italic'}}>your people. hold onto them.</div>
+          </div>
+          {crew.length<3&&!editCrew&&(
+            <button onClick={()=>{setCf({name:'',origin:'',rep:'',findUs:'',photo:''});setEditCrew('new');}} style={{
+              display:'flex',alignItems:'center',gap:5,padding:'6px 12px',borderRadius:10,
+              background:'rgba(252,60,191,.1)',border:'1px solid rgba(252,60,191,.3)',color:'#fc3cbf',fontWeight:600,fontSize:11,
+            }}>
+              <img src={IC('status-action/action-add.webp')} alt="" className="icon-img" style={{width:14,height:14}}/>
+              Add Crew
+            </button>
+          )}
+        </div>
+      </ScreenHeader>
+
+      <div className="screen" style={{padding:'16px 20px 104px'}}>
+        {/* Crew form */}
+        {editCrew&&(
+          <div className="card" style={{padding:'16px',marginBottom:16}}>
+            <div className="sora" style={{fontWeight:700,fontSize:14,marginBottom:14}}>{editCrew==='new'?'New Crew':'Edit Crew'}</div>
+            <div style={{display:'flex',gap:12,marginBottom:14,alignItems:'center'}}>
+              <div style={{width:64,height:64,borderRadius:14,background:'rgba(255,255,255,.07)',border:'1px dashed rgba(255,255,255,.18)',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',flexShrink:0}}>
+                {cf.photo?<img src={cf.photo} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=""/>:<img src={IC('festival-utility/utility-totem.webp')} alt="" className="icon-img" style={{width:32,height:32,opacity:.4}}/>}
+              </div>
+              <div>
+                <label style={{display:'inline-flex',alignItems:'center',gap:6,padding:'7px 12px',borderRadius:8,background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.1)',color:'rgba(255,255,255,.55)',fontSize:11,cursor:'pointer'}}>
+                  <img src={IC('status-action/action-scan.webp')} alt="" className="icon-img" style={{width:14,height:14}}/>
+                  Choose Photo <input type="file" accept="image/*" onChange={handlePhoto} style={{display:'none'}}/>
+                </label>
+                <div style={{fontSize:9,color:'rgba(255,255,255,.22)',marginTop:5}}>use a compressed photo</div>
+              </div>
+            </div>
+            {[['name','Crew Name *','e.g. THE NIGHT OWL CREW'],['origin','From','e.g. Vancouver, BC'],['rep','Rep','e.g. Jerry'],['findUs','Find Us (at festival)','e.g. Left rail, kineticFIELD']].map(([k,l,p])=>(
+              <div key={k} style={{marginBottom:10}}>
+                <div style={{fontSize:10,color:'rgba(255,255,255,.3)',marginBottom:4}}>{l}</div>
+                <input value={cf[k]} onChange={e=>setCf(c=>({...c,[k]:e.target.value}))} placeholder={p} className="input"/>
+              </div>
+            ))}
+            <div style={{display:'flex',gap:8,marginTop:14}}>
+              <button onClick={saveCrew} style={{flex:1,padding:'11px',borderRadius:10,background:'#fc3cbf',color:'#fff',fontWeight:700,fontSize:13,fontFamily:'Sora,sans-serif'}}>Save</button>
+              <button onClick={()=>setEditCrew(null)} style={{padding:'11px 18px',borderRadius:10,background:'rgba(255,255,255,.07)',color:'rgba(255,255,255,.4)',fontSize:13}}>Cancel</button>
+            </div>
+          </div>
+        )}
+
+        {/* Crew cards */}
+        <div className="section-label">Totems ({crew.length}/3)</div>
+        {crew.length===0&&!editCrew&&<div style={{textAlign:'center',padding:'20px',color:'rgba(255,255,255,.18)',fontSize:12,border:'1px dashed rgba(255,255,255,.06)',borderRadius:12,marginBottom:16}}>add your crew to link to map pins</div>}
+        {crew.map(c=>(
+          <div key={c.id} className="card" style={{padding:'14px',marginBottom:12,display:'flex',gap:12,alignItems:'center'}}>
+            <div style={{width:60,height:60,borderRadius:12,background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.1)',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',flexShrink:0}}>
+              {c.photo?<img src={c.photo} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=""/>:<img src={IC('festival-utility/utility-totem.webp')} alt="" className="icon-img" style={{width:28,height:28,opacity:.5}}/>}
+            </div>
+            <div style={{flex:1,minWidth:0}}>
+              <div className="sora" style={{fontWeight:700,fontSize:13,marginBottom:3,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{c.name}</div>
+              {c.origin&&<div style={{fontSize:11,color:'rgba(255,255,255,.35)',marginBottom:2}}>{c.origin}{c.rep&&` · Rep: ${c.rep}`}</div>}
+              {c.findUs&&<div style={{display:'flex',alignItems:'center',gap:5,fontSize:10,color:'#fc3cbf',marginTop:4}}>
+                <img src={IC('festival-utility/utility-meet-up-point.webp')} alt="" className="icon-img" style={{width:12,height:12,opacity:.7}}/>
+                {c.findUs}
+              </div>}
+            </div>
+            <div style={{display:'flex',flexDirection:'column',gap:6}}>
+              <button onClick={()=>{setCf({name:c.name,origin:c.origin||'',rep:c.rep||'',findUs:c.findUs||'',photo:c.photo||''});setEditCrew(c.id);}} style={{display:'flex',alignItems:'center',gap:4,fontSize:11,color:'rgba(255,255,255,.4)',background:'rgba(255,255,255,.06)',borderRadius:6,padding:'5px 8px'}}>
+                <img src={IC('status-action/action-edit.webp')} alt="" className="icon-img" style={{width:10,height:10}}/>Edit
+              </button>
+              <button onClick={()=>setCrew(p=>p.filter(x=>x.id!==c.id))} style={{display:'flex',alignItems:'center',gap:4,fontSize:11,color:'#ff5555',background:'rgba(255,85,85,.08)',borderRadius:6,padding:'5px 8px'}}>
+                <img src={IC('status-action/action-delete.webp')} alt="" className="icon-img" style={{width:10,height:10}}/>Del
+              </button>
+            </div>
+          </div>
+        ))}
+
+        {/* Meetup markers */}
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',margin:'20px 0 10px'}}>
+          <div className="section-label" style={{margin:0}}>Meetup Markers</div>
+          <button onClick={()=>{setMf({label:'',time:'',day:0,color:'#FFD700'});setEditMarker('new');}} style={{display:'flex',alignItems:'center',gap:5,fontSize:11,color:'#fc3cbf',background:'rgba(252,60,191,.1)',border:'1px solid rgba(252,60,191,.25)',borderRadius:8,padding:'4px 10px',fontWeight:600}}>
+            <img src={IC('status-action/action-add.webp')} alt="" className="icon-img" style={{width:12,height:12}}/>Add
+          </button>
+        </div>
+
+        {editMarker&&(
+          <div className="card" style={{padding:'14px',marginBottom:14}}>
+            <div style={{display:'flex',gap:8,marginBottom:8}}>
+              <input value={mf.label} onChange={e=>setMf(f=>({...f,label:e.target.value}))} placeholder="Label *" className="input" style={{flex:2}}/>
+              <input value={mf.time} onChange={e=>setMf(f=>({...f,time:e.target.value}))} placeholder="Time" className="input" style={{flex:1}}/>
+            </div>
+            <div style={{display:'flex',gap:8,marginBottom:8,alignItems:'center'}}>
+              <input type="color" value={mf.color} onChange={e=>setMf(f=>({...f,color:e.target.value}))} style={{width:40,height:36,borderRadius:7,border:'1px solid rgba(255,255,255,.12)',background:'none',cursor:'pointer',padding:2}}/>
+              <div style={{display:'flex',gap:4}}>
+                {[0,1,2,3].map(d=>(
+                  <button key={d} onClick={()=>setMf(f=>({...f,day:d}))} className={mf.day===d?'pill pill-active':'pill pill-inactive'} style={{padding:'5px 10px',fontSize:10}}>
+                    {d===0?'All':['F','Sa','Su'][d-1]}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div style={{display:'flex',gap:8}}>
+              <button onClick={saveMarker} style={{flex:1,padding:'10px',borderRadius:9,background:'#fc3cbf',color:'#fff',fontWeight:700,fontSize:12,fontFamily:'Sora,sans-serif'}}>Save</button>
+              <button onClick={()=>setEditMarker(null)} style={{padding:'10px 16px',borderRadius:9,background:'rgba(255,255,255,.07)',color:'rgba(255,255,255,.4)',fontSize:12}}>Cancel</button>
+            </div>
+          </div>
+        )}
+
+        {markers.length===0&&!editMarker&&<div style={{textAlign:'center',padding:'14px',color:'rgba(255,255,255,.15)',fontSize:11,border:'1px dashed rgba(255,255,255,.06)',borderRadius:12,marginBottom:12}}>markers appear on schedule & exports</div>}
+        {markers.map(m=>(
+          <div key={m.id} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 0',borderBottom:'1px solid rgba(255,255,255,.04)'}}>
+            <div style={{width:10,height:10,borderRadius:'50%',background:m.color,boxShadow:`0 0 8px ${m.color}`,flexShrink:0}}/>
+            <div style={{flex:1}}>
+              <div style={{fontWeight:600,fontSize:13}}>{m.label}</div>
+              {m.time&&<div style={{fontSize:10,color:'rgba(255,255,255,.28)',marginTop:1}}>{m.time}{m.day>0?` · ${'Fri Sat Sun'.split(' ')[m.day-1]}`:' · All days'}</div>}
+            </div>
+            <button onClick={()=>setMarkers(p=>p.filter(x=>x.id!==m.id))} style={{fontSize:16,color:'rgba(255,85,85,.6)',padding:6}}>×</button>
+          </div>
+        ))}
+
+        {/* Kit checklist */}
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',margin:'24px 0 12px'}}>
+          <div className="section-label" style={{margin:0}}>Kit Checklist</div>
+          <span style={{fontSize:10,color:'rgba(255,255,255,.25)'}}>{kitChecked.length}/{KIT_ITEMS.length}</span>
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+          {KIT_ITEMS.map(k=>{
+            const checked=kitChecked.includes(k.id);
+            return(
+              <button key={k.id} onClick={()=>toggleKit(k.id)} style={{
+                display:'flex',alignItems:'center',gap:10,padding:'11px 13px',borderRadius:12,
+                background:checked?'rgba(252,60,191,.1)':'rgba(255,255,255,.03)',
+                border:`1px solid ${checked?'rgba(252,60,191,.3)':'rgba(255,255,255,.07)'}`,
+                textAlign:'left',transition:'all .15s',
+              }}>
+                <img src={IC(`kit-essentials/${k.icon}`)} alt="" className="icon-img" style={{width:22,height:22,opacity:checked?1:.45,mixBlendMode:'screen'}}/>
+                <span style={{fontSize:12,fontWeight:checked?600:400,color:checked?'#fff':'rgba(255,255,255,.45)'}}>{k.label}</span>
+                {checked&&<div style={{marginLeft:'auto',width:6,height:6,borderRadius:'50%',background:'#fc3cbf',boxShadow:'0 0 6px #fc3cbf',flexShrink:0}}/>}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── INSTALL PROMPT ─────────────────────────────────────────── */
+function InstallBanner(){
+  const[show,setShow]=useState(false);
+  const[prompt,setPrompt]=useState(null);
+  useEffect(()=>{
+    const v=parseInt(LS.get('visits',0))+1; LS.set('visits',v);
+    window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();setPrompt(e);if(v>=2&&!LS.get('installDone'))setShow(true);});
+  },[]);
+  if(!show)return null;
+  return(
+    <div className="anim-up" style={{position:'fixed',bottom:90,left:14,right:14,background:'rgba(8,12,24,.97)',backdropFilter:'blur(24px)',borderRadius:20,padding:'16px',border:'1px solid rgba(252,60,191,.25)',boxShadow:'0 8px 40px rgba(0,0,0,.6)',zIndex:200}}>
+      <div style={{display:'flex',gap:12,alignItems:'center',marginBottom:12}}>
+        <img src={W('icon-192.webp')} alt="" style={{width:48,height:48,borderRadius:12,flexShrink:0}}/>
+        <div style={{flex:1}}>
+          <div className="sora" style={{fontWeight:700,fontSize:14,marginBottom:2}}>Add to Home Screen</div>
+          <div style={{fontSize:11,color:'rgba(255,255,255,.38)'}}>offline access during the festival</div>
+        </div>
+        <button onClick={()=>setShow(false)} style={{fontSize:20,opacity:.3,padding:4}}>×</button>
+      </div>
+      <div style={{display:'flex',gap:8}}>
+        <button onClick={async()=>{if(prompt){await prompt.prompt();prompt.userChoice.then(()=>{LS.set('installDone',1);setShow(false);});}else setShow(false);}} style={{flex:1,padding:'11px',borderRadius:10,background:'linear-gradient(135deg,#fc3cbf,#0bf5f8)',color:'#fff',fontWeight:700,fontSize:13,fontFamily:'Sora,sans-serif'}}>Install</button>
+        <button onClick={()=>setShow(false)} style={{padding:'11px 16px',borderRadius:10,background:'rgba(255,255,255,.07)',color:'rgba(255,255,255,.4)',fontSize:13}}>Later</button>
+      </div>
+    </div>
+  );
+}
+
+/* ─── SHARED BANNER ──────────────────────────────────────────── */
+function SharedBanner({shared,onDismiss}){
+  if(!shared)return null;
+  return(
+    <div style={{background:'rgba(255,62,178,.12)',borderBottom:'1px solid rgba(255,62,178,.25)',padding:'9px 16px',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
+      <div style={{display:'flex',alignItems:'center',gap:8}}>
+        <img src={IC('status-action/action-profile.webp')} alt="" className="icon-img" style={{width:16,height:16,opacity:.7}}/>
+        <span style={{fontSize:11,color:'rgba(255,62,178,1)',fontWeight:600}}>viewing shared schedule · {shared.length} sets</span>
+      </div>
+      <button onClick={onDismiss} style={{fontSize:11,color:'rgba(255,255,255,.35)',background:'rgba(255,255,255,.07)',borderRadius:6,padding:'3px 8px'}}>Dismiss</button>
+    </div>
+  );
+}
+
+/* ─── DEV AUDIT ──────────────────────────────────────────────── */
+function Audit({sel,recon,onClose}){
+  const[r,setR]=useState(null);
+  useEffect(()=>{
+    const res={pwa:{manifest:!!document.querySelector('link[rel=manifest]'),sw:'serviceWorker' in navigator},schedule:{total:SCHEDULE.length,main:SCHEDULE.filter(s=>STAGES.includes(s.stage)).length,dups:[]},conflicts:{hard:[],trimmed:[]},storage:{selCount:sel.length}};
+    const seen=new Set(); SCHEDULE.forEach(s=>{if(seen.has(s.id))res.schedule.dups.push(s.id);seen.add(s.id);});
+    Object.values(recon).forEach(s=>{if(s.conflict)res.conflicts.hard.push(s.artist);if(s.trimmed)res.conflicts.trimmed.push(`${s.artist} (−${s.trimMin}m)`);});
+    navigator.serviceWorker?.getRegistration().then(reg=>{res.pwa.swActive=!!reg?.active;setR({...res});});
+    setR(res);
+  },[]);
+  return(
+    <div style={{position:'fixed',inset:0,background:'rgba(8,12,24,.97)',zIndex:999,overflowY:'auto',padding:'60px 20px 40px'}}>
+      <div style={{display:'flex',justifyContent:'space-between',marginBottom:20}}>
+        <div className="sora" style={{fontWeight:700,fontSize:16,color:'#fc3cbf'}}>DEV AUDIT</div>
+        <button onClick={onClose} style={{fontSize:20,opacity:.4}}>×</button>
+      </div>
+      {r&&Object.entries(r).map(([k,v])=>(
+        <div key={k} className="card" style={{marginBottom:12,padding:'12px 14px'}}>
+          <div style={{fontWeight:700,fontSize:11,color:'#0bf5f8',marginBottom:8,letterSpacing:'.1em',textTransform:'uppercase'}}>{k}</div>
+          <pre style={{fontSize:11,color:'rgba(255,255,255,.55)',lineHeight:1.8,whiteSpace:'pre-wrap',wordBreak:'break-all'}}>{JSON.stringify(v,null,2)}</pre>
+        </div>
+      ))}
+      <div style={{marginTop:20,fontSize:10,color:'rgba(255,255,255,.18)'}}>EDC LV 2026 PWA v2.0 · long-press version to open</div>
+    </div>
+  );
+}
+
+/* ─── ROOT ───────────────────────────────────────────────────── */
+function App(){
+  const[tab,setTab]=useState('home');
+  const[audit,setAudit]=useState(false);
+  const{sel,toggle,recon,crew,setCrew,markers,setMarkers,pins,setPins,shared,setShared}=useApp();
+
+  useEffect(()=>{
+    if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+  },[]);
+
+  return(
+    <div style={{height:'100%',display:'flex',flexDirection:'column',position:'relative',overflow:'hidden'}}>
+      {shared&&<SharedBanner shared={shared} onDismiss={()=>setShared(null)}/>}
+      <div key={tab} className="anim-up" style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',position:'relative'}}>
+        {tab==='home'&&<HomeScreen sel={sel} toggle={toggle} recon={recon} shared={shared}/>}
+        {tab==='schedule'&&<ScheduleScreen sel={sel} toggle={toggle} recon={recon} shared={shared}/>}
+        {tab==='map'&&<MapScreen pins={pins} setPins={setPins} crew={crew}/>}
+        {tab==='crew'&&<CrewScreen crew={crew} setCrew={setCrew} markers={markers} setMarkers={setMarkers}/>}
+        <BottomNav tab={tab} setTab={setTab}/>
+      </div>
+      <InstallBanner/>
+      {audit&&<Audit sel={sel} recon={recon} onClose={()=>setAudit(false)}/>}
+      <div
+        onContextMenu={e=>{e.preventDefault();setAudit(true);}}
+        onTouchStart={(()=>{let t;return()=>{t=setTimeout(()=>setAudit(true),800);};})()}
+        onTouchEnd={()=>{}}
+        style={{position:'absolute',bottom:4,right:8,fontSize:9,color:'rgba(255,255,255,.05)',zIndex:50,userSelect:'none',cursor:'default'}}
+      >v2.0</div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
