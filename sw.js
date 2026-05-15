@@ -1,4 +1,4 @@
-const CACHE = 'edc2026-v1';
+const CACHE = 'edc2026-v3';
 const PRECACHE = [
   '/', '/index.html', '/manifest.json',
   'assets/webp/edc-logo.webp', 'assets/webp/edc-logo-neon.webp',
